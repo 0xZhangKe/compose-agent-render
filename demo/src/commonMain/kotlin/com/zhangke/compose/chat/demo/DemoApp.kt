@@ -12,10 +12,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.zhangke.compose.chat.core.ChatMessage
-import com.zhangke.compose.chat.core.ChatSender
-import com.zhangke.compose.chat.framework.ChatPlatform
-import com.zhangke.compose.chat.ui.AIChatView
+import com.zhangke.compose.agent.render.core.ChatMessage
+import com.zhangke.compose.agent.render.core.ChatSender
+import com.zhangke.compose.agent.render.AIChatView
 
 @Composable
 fun DemoApp() {
@@ -32,11 +31,6 @@ fun DemoApp() {
                 Text(
                     text = "Compose AI Chat",
                     style = MaterialTheme.typography.headlineSmall,
-                )
-                Text(
-                    text = "Running on ${ChatPlatform.name}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 AIChatView(messages = demoMessages)

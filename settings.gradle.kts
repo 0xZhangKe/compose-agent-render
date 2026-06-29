@@ -16,9 +16,8 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ComposeAIChat"
+rootProject.name = "compose-agent-render"
 
-include(":framework")
-include(":ai-chat-core")
-include(":ai-chat-ui")
+include(":agent-render-core")
+include(":agent-render")
 include(":demo")
