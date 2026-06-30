@@ -18,6 +18,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "compose-agent-render"
 
-include(":agent-render-core")
 include(":agent-render")
+include(":agent-render-koog")
 include(":demo")

@@ -10,7 +10,7 @@ import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
 import ai.koog.prompt.llm.LLMCapability
 import ai.koog.prompt.llm.LLMProvider
 import ai.koog.prompt.llm.LLModel
-import com.zhangke.compose.agent.render.core.model.AgentOutput
+import com.zhangke.compose.agent.render.model.AgentOutput
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 

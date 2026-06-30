@@ -1,8 +1,8 @@
 package com.zhangke.compose.chat.demo.agent
 
 import ai.koog.prompt.streaming.StreamFrame
-import com.zhangke.compose.agent.render.core.model.AgentOutput
-import com.zhangke.compose.agent.render.core.model.ToolStatus
+import com.zhangke.compose.agent.render.model.AgentOutput
+import com.zhangke.compose.agent.render.model.ToolStatus
 
 fun StreamFrame.toAgentOutput(): AgentOutput? {
     return when (this) {

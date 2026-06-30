@@ -13,10 +13,12 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            implementation(project(":agent-render"))
             implementation(libs.compose.runtime)
             implementation(libs.compose.ui)
             implementation(libs.compose.foundation)
             implementation(libs.compose.ui.tooling.preview)
+            implementation(libs.koog.agents)
         }
     }
 }
@@ -26,7 +28,7 @@ dependencies {
 }
 
 android {
-    namespace = "com.zhangke.compose.agent.render"
+    namespace = "com.zhangke.compose.agent.render.koog"
     compileSdk = 36
 
     defaultConfig {

@@ -1,4 +1,4 @@
-package com.zhangke.compose.agent.render.core.model
+package com.zhangke.compose.agent.render.model
 
 sealed interface AgentOutput {
 

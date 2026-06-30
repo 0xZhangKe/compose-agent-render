@@ -21,9 +21,6 @@ val generateLLMConfigs by tasks.registering {
         val properties = Properties()
         localPropertiesFile.asFile.inputStream().use(properties::load)
         val openRouter = properties.getProperty("OPEN_ROUTER")?.trim().orEmpty()
-        require(openRouter.isNotEmpty()) {
-            "OPEN_ROUTER is missing in local.properties."
-        }
 
         val outputFile = generatedLlmConfigsDir.get()
             .file("com/zhangke/compose/chat/demo/agent/LLMConfigs.kt")
@@ -59,8 +56,8 @@ kotlin {
         commonMain {
             kotlin.srcDir(generateLLMConfigs)
             dependencies {
-                implementation(project(":agent-render-core"))
                 implementation(project(":agent-render"))
+                implementation(project(":agent-render-koog"))
                 implementation(libs.compose.runtime)
                 implementation(libs.compose.ui)
                 implementation(libs.compose.foundation)

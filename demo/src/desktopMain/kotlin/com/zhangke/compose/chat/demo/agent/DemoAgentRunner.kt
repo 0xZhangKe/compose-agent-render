@@ -1,6 +1,6 @@
 package com.zhangke.compose.chat.demo.agent
 
-import com.zhangke.compose.agent.render.core.model.AgentOutput
+import com.zhangke.compose.agent.render.model.AgentOutput
 import kotlinx.coroutines.runBlocking
 
 fun main() = runBlocking {

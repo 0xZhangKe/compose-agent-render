@@ -1,4 +1,4 @@
-package com.zhangke.compose.agent.render.core
+package com.zhangke.compose.agent.render.model
 
 data class ChatMessage(
     val id: String,

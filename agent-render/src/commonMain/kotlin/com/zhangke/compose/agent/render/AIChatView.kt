@@ -17,8 +17,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.zhangke.compose.agent.render.core.ChatMessage
-import com.zhangke.compose.agent.render.core.ChatSender
+import com.zhangke.compose.agent.render.model.ChatMessage
+import com.zhangke.compose.agent.render.model.ChatSender
 
 @Composable
 fun AIChatView(
