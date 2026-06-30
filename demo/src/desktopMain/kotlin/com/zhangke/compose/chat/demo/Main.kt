@@ -6,8 +6,8 @@ import androidx.compose.ui.window.application
 fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
-        title = "Compose AI Chat",
+        title = "compose agent renderer",
     ) {
-        DemoApp()
+        ChatListScreen()
     }
 }

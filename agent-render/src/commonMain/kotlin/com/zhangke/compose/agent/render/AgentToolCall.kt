@@ -48,7 +48,7 @@ fun AgentToolCall(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(6.dp))
+                .clip(AgentRenderTheme.shape.small)
                 .clickable { expanded = !expanded }
                 .padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -57,7 +57,7 @@ fun AgentToolCall(
             Icon(
                 painter = icons.toolCallIcon,
                 contentDescription = null,
-                tint = colors.toolCallContentVariant,
+                tint = colors.contentVariant,
                 modifier = Modifier.size(18.dp),
             )
             BasicText(
@@ -66,13 +66,13 @@ fun AgentToolCall(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = typography.toolCallCommand.copy(
-                    color = colors.toolCallContentVariant,
+                    color = colors.contentVariant,
                 ),
             )
             Icon(
                 painter = if (expanded) icons.expandLessIcon else icons.expandMoreIcon,
                 contentDescription = null,
-                tint = colors.toolCallContentVariant,
+                tint = colors.contentVariant,
                 modifier = Modifier.size(18.dp),
             )
         }
@@ -98,7 +98,7 @@ private fun ToolCallLog(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(max = 220.dp)
-            .clip(RoundedCornerShape(10.dp))
+            .clip(AgentRenderTheme.shape.medium)
             .background(colors.toolCallContainer)
             .padding(16.dp),
     ) {
@@ -109,7 +109,7 @@ private fun ToolCallLog(
             BasicText(
                 text = title,
                 style = typography.toolCallLine.copy(
-                    color = colors.toolCallContentVariant,
+                    color = colors.toolCallContent,
                 ),
             )
             Box(
@@ -167,17 +167,3 @@ private fun String.toSingleLine(): String {
         .joinToString(separator = " ") { it.trim() }
         .replace(Regex("\\s+"), " ")
 }
-
-private val ToolStatus.label: String
-    get() = when (this) {
-        ToolStatus.Running -> "Running"
-        ToolStatus.Success -> "Success"
-        ToolStatus.Error -> "Error"
-    }
-
-private fun ToolStatus.color(colors: AgentColorScheme) =
-    when (this) {
-        ToolStatus.Running -> colors.warning
-        ToolStatus.Success -> colors.success
-        ToolStatus.Error -> colors.error
-    }

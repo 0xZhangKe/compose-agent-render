@@ -3,17 +3,21 @@ package com.zhangke.compose.chat.demo.agent
 import ai.koog.prompt.streaming.StreamFrame
 import com.zhangke.compose.agent.render.model.AgentOutput
 import com.zhangke.compose.agent.render.model.ToolStatus
+import kotlin.time.Clock
 
 fun StreamFrame.toAgentOutput(): AgentOutput? {
+    val createAt = Clock.System.now()
     return when (this) {
         is StreamFrame.TextDelta -> AgentOutput.AssistantText(
             id = "assistant-${index ?: 0}",
             content = text,
+            createAt = createAt,
         )
 
         is StreamFrame.ReasoningDelta -> AgentOutput.Reasoning(
             id = id ?: "reasoning-${index ?: 0}",
             content = summary ?: text.orEmpty(),
+            createAt = createAt,
         )
 
         is StreamFrame.ToolCallDelta -> AgentOutput.ToolCall(
@@ -22,6 +26,7 @@ fun StreamFrame.toAgentOutput(): AgentOutput? {
             arguments = content.orEmpty(),
             output = "",
             status = ToolStatus.Running,
+            createAt = createAt,
         )
 
         is StreamFrame.ToolCallComplete -> AgentOutput.ToolCall(
@@ -30,6 +35,7 @@ fun StreamFrame.toAgentOutput(): AgentOutput? {
             arguments = content,
             output = "",
             status = ToolStatus.Success,
+            createAt = createAt,
         )
 
         is StreamFrame.TextComplete,

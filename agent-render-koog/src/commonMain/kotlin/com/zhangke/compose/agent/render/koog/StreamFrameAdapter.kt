@@ -5,6 +5,8 @@ import com.zhangke.compose.agent.render.model.AgentOutput
 import com.zhangke.compose.agent.render.model.ToolStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 fun Flow<StreamFrame>.reduceToAgentOutput(): Flow<List<AgentOutput>> {
     return flow {
@@ -23,6 +25,7 @@ private class StreamFrameReducer {
     private val textById = mutableMapOf<String, String>()
     private val reasoningById = mutableMapOf<String, String>()
     private val toolCallsById = mutableMapOf<String, ToolCallState>()
+    private val createAtById = mutableMapOf<String, Instant>()
 
     val outputs: List<AgentOutput>
         get() = outputsById.values.toList()
@@ -46,6 +49,7 @@ private class StreamFrameReducer {
         outputsById[id] = AgentOutput.AssistantText(
             id = id,
             content = content,
+            createAt = createAtById.getOrCreate(id),
         )
         return true
     }
@@ -56,8 +60,10 @@ private class StreamFrameReducer {
         outputsById[id] = AgentOutput.AssistantText(
             id = id,
             content = frame.text,
+            createAt = createAtById.getOrCreate(id),
         )
         textById.remove(id)
+        createAtById.remove(id)
         return true
     }
 
@@ -69,6 +75,7 @@ private class StreamFrameReducer {
         outputsById[id] = AgentOutput.Reasoning(
             id = id,
             content = content,
+            createAt = createAtById.getOrCreate(id),
         )
         return true
     }
@@ -81,14 +88,19 @@ private class StreamFrameReducer {
         outputsById[id] = AgentOutput.Reasoning(
             id = id,
             content = content,
+            createAt = createAtById.getOrCreate(id),
         )
         reasoningById.remove(id)
+        createAtById.remove(id)
         return true
     }
 
     private fun reduceToolCallDelta(frame: StreamFrame.ToolCallDelta): Boolean {
         val id = frame.toolCallId
-        val current = toolCallsById[id] ?: ToolCallState(id = id)
+        val current = toolCallsById[id] ?: ToolCallState(
+            id = id,
+            createAt = createAtById.getOrCreate(id),
+        )
         val next = current.copy(
             name = frame.name ?: current.name,
             arguments = current.arguments.mergeDelta(frame.content),
@@ -101,7 +113,10 @@ private class StreamFrameReducer {
 
     private fun reduceToolCallComplete(frame: StreamFrame.ToolCallComplete): Boolean {
         val id = frame.toolCallId
-        val current = toolCallsById[id] ?: ToolCallState(id = id)
+        val current = toolCallsById[id] ?: ToolCallState(
+            id = id,
+            createAt = createAtById.getOrCreate(id),
+        )
         val next = current.copy(
             name = frame.name,
             arguments = frame.content,
@@ -110,8 +125,13 @@ private class StreamFrameReducer {
         toolCallsById[id] = next
         outputsById[id] = next.toAgentOutput()
         toolCallsById.remove(id)
+        createAtById.remove(id)
         return true
     }
+}
+
+private fun MutableMap<String, Instant>.getOrCreate(id: String): Instant {
+    return getOrPut(id) { Clock.System.now() }
 }
 
 private data class ToolCallState(
@@ -119,6 +139,7 @@ private data class ToolCallState(
     val name: String = "",
     val arguments: String = "",
     val status: ToolStatus = ToolStatus.Running,
+    val createAt: Instant,
 ) {
 
     fun toAgentOutput(): AgentOutput.ToolCall {
@@ -128,6 +149,7 @@ private data class ToolCallState(
             arguments = arguments,
             output = "",
             status = status,
+            createAt = createAt,
         )
     }
 }

@@ -9,12 +9,14 @@ fun AgentRenderTheme(
     colorScheme: AgentColorScheme = AgentColorScheme.light(),
     typography: AgentTypography = AgentTypography.default(),
     iconsProvider: AgentIconsProvider = DefaultAgentIconProvider,
+    shape: AgentShape = AgentShape.default(),
     content: @Composable () -> Unit,
 ) {
     CompositionLocalProvider(
         LocalAgentColorScheme provides colorScheme,
         LocalAgentTypography provides typography,
         LocalAgentIconsProvider provides iconsProvider,
+        LocalAgentShape provides shape,
     ) {
         content()
     }
@@ -30,4 +32,7 @@ object AgentRenderTheme {
 
     val iconsProvider: AgentIconsProvider
         @Composable @ReadOnlyComposable get() = LocalAgentIconsProvider.current
+
+    val shape: AgentShape
+        @Composable @ReadOnlyComposable get() = LocalAgentShape.current
 }
