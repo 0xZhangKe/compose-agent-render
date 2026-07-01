@@ -10,14 +10,22 @@ import androidx.compose.ui.unit.sp
 data class AgentTypography(
     val content: TextStyle,
     val toolCallLine: TextStyle,
-    val toolCallCommand: TextStyle = content,
+    val inputBarContent: TextStyle,
+    val toolCallCommand: TextStyle,
 ) {
 
     companion object {
 
         fun default(): AgentTypography {
             return AgentTypography(
-                content = TextStyle.Default,
+                content = TextStyle.Default.copy(
+                    fontSize = 12.sp,
+                    fontFamily = FontFamily.Monospace,
+                ),
+                inputBarContent = TextStyle.Default.copy(
+                    fontSize = 12.sp,
+                    fontFamily = FontFamily.Monospace,
+                ),
                 toolCallLine = TextStyle.Default.copy(
                     fontSize = 12.sp,
                     fontFamily = FontFamily.Monospace,

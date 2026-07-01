@@ -15,6 +15,8 @@ data class AgentColorScheme(
     val toolCallContainer: Color,
     val toolCallContent: Color,
     val humanInputContainer: Color,
+    val outline: Color,
+    val inputBarContainer: Color,
 ) {
 
     companion object {
@@ -22,28 +24,32 @@ data class AgentColorScheme(
         @Composable
         fun light(): AgentColorScheme {
             return AgentColorScheme(
-                primary = Color(0xFF6200EE),
-                content = Color(0xFF000000),
-                contentVariant = Color(0xFF666666),
-                link = Color(0xFF1E88E5),
-                error = Color(0xFFC62828),
-                humanInputContainer = Color(0xFFEDEDED),
-                toolCallContainer = Color(0xFFEDEDED),
-                toolCallContent = Color(0xFF202124),
+                primary = Color(0xFF2E87FF),
+                content = Color(0xFF191B22),
+                contentVariant = Color(0xE0424753),
+                link = Color(0xFF2E87FF),
+                error = Color(0xFFA0004C),
+                humanInputContainer = Color(0xFFECEDF7),
+                toolCallContainer = Color(0xFFECEDF7),
+                toolCallContent = Color(0xFF191B22),
+                outline = Color(0xFFC2C6D6),
+                inputBarContainer = Color(0xFFF9FBFF),
             )
         }
 
         @Composable
         fun dark(): AgentColorScheme {
             return AgentColorScheme(
-                primary = Color(0xFFBB86FC),
-                content = Color(0xFFFFFFFF),
-                contentVariant = Color(0xFFCCCCCC),
-                link = Color(0xFF90CAF9),
-                error = Color(0xFFFFB4AB),
-                humanInputContainer = Color(0xFF2B2C2F),
-                toolCallContainer = Color(0xFF2B2C2F),
-                toolCallContent = Color(0xFFE8EAED),
+                primary = Color(0xFFADC6FF),
+                content = Color(0xFFE1E2EC),
+                contentVariant = Color(0xFFC2C6D6),
+                link = Color(0xFFADC6FF),
+                error = Color(0xFFFFB1C4),
+                humanInputContainer = Color(0xFF1D2027),
+                toolCallContainer = Color(0xFF1D2027),
+                toolCallContent = Color(0xFFE1E2EC),
+                outline = Color(0xFF424753),
+                inputBarContainer = Color(0xFF10131A),
             )
         }
     }
