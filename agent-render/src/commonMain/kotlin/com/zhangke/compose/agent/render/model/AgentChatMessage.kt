@@ -5,7 +5,7 @@ import kotlin.time.Instant
 sealed interface AgentChatMessage {
 
     data class AgentOutputMessage(
-        val outputList: List<AgentOutput>,
+        val outputList: List<AgentOutput<Any>>,
     ) : AgentChatMessage
 
     data class HumanInputMessage(
