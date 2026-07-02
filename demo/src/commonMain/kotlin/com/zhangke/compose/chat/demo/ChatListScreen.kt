@@ -1,14 +1,24 @@
 package com.zhangke.compose.chat.demo
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.zhangke.compose.agent.render.chat.AgentChatList
+import com.zhangke.compose.agent.render.chat.InputBar
 import com.zhangke.compose.agent.render.model.AgentChatMessage
 import com.zhangke.compose.agent.render.model.AgentOutput
 import com.zhangke.compose.agent.render.model.ToolStatus
@@ -24,12 +34,26 @@ fun ChatListScreen() {
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
         ) {
+            val density = LocalDensity.current
             AgentRenderTheme {
-                AgentChatList(
-                    modifier = Modifier.fillMaxSize(),
-                    messageList = messageList,
-                    contentPadding = PaddingValues(20.dp),
-                )
+                Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    var inputBarHeight by remember { mutableStateOf(46.dp) }
+                    AgentChatList(
+                        modifier = Modifier.fillMaxSize(),
+                        messageList = messageList,
+                        contentPadding = PaddingValues(top = 24.dp, bottom = inputBarHeight + 16.dp),
+                    )
+                    InputBar(
+                        modifier = Modifier
+                            .onSizeChanged { size -> inputBarHeight = with(density) { size.height.toDp() } }
+                            .fillMaxWidth()
+                            .padding(bottom = 24.dp)
+                            .align(Alignment.BottomCenter),
+                        onSendClick = {
+
+                        },
+                    )
+                }
             }
         }
     }

@@ -30,6 +30,8 @@ import com.zhangke.compose.agent.render.theme.AgentRenderTheme
 @Composable
 fun InputBar(
     modifier: Modifier,
+    minLines: Int = 2,
+    maxLines: Int = Int.MAX_VALUE,
     onSendClick: (String) -> Unit,
 ) {
     Box(
@@ -48,7 +50,8 @@ fun InputBar(
             BasicTextField(
                 modifier = Modifier.fillMaxWidth(),
                 value = inputtedValue,
-                minLines = 2,
+                minLines = minLines,
+                maxLines = maxLines,
                 textStyle = AgentRenderTheme.typography.inputBarContent.copy(
                     color = AgentRenderTheme.colorScheme.content,
                 ),
@@ -66,6 +69,7 @@ fun InputBar(
                     modifier = Modifier,
                     painter = rememberVectorPainter(ArrowUpward),
                     contentDescription = null,
+                    tint = AgentRenderTheme.colorScheme.content,
                 )
             }
         }
@@ -74,7 +78,7 @@ fun InputBar(
 
 @Preview
 @Composable
-private fun PreviewInputBar(){
+private fun PreviewInputBar() {
     AgentRenderTheme {
         InputBar(
             modifier = Modifier.fillMaxWidth(),

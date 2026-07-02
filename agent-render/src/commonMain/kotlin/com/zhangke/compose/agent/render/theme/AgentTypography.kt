@@ -23,7 +23,7 @@ data class AgentTypography(
                     fontFamily = FontFamily.Monospace,
                 ),
                 inputBarContent = TextStyle.Default.copy(
-                    fontSize = 12.sp,
+                    fontSize = 14.sp,
                     fontFamily = FontFamily.Monospace,
                 ),
                 toolCallLine = TextStyle.Default.copy(
