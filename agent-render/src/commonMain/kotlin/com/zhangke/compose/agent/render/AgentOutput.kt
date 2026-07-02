@@ -8,9 +8,10 @@ import androidx.compose.ui.Modifier
 import com.zhangke.compose.agent.render.model.AgentOutput
 
 @Composable
-fun AgentOutput(
+fun <T> AgentOutput(
     modifier: Modifier = Modifier,
-    outputList: List<AgentOutput>,
+    outputList: List<AgentOutput<T>>,
+    custom: @Composable ((data: T) -> Unit)? = null,
 ) {
     Box(modifier = modifier) {
         Column(
@@ -24,17 +25,23 @@ fun AgentOutput(
                             agentToolCall = output,
                         )
                     }
+
                     is AgentOutput.Reasoning -> {
                         AgentReasoning(
                             modifier = Modifier.fillMaxWidth(),
                             agentToolCall = output,
                         )
                     }
+
                     is AgentOutput.AssistantText -> {
                         AgentAssistantText(
                             modifier = Modifier.fillMaxWidth(),
                             agentToolCall = output,
                         )
+                    }
+
+                    is AgentOutput.Custom -> {
+                        custom?.invoke(output.data)
                     }
                 }
             }

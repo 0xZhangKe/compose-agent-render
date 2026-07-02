@@ -8,9 +8,11 @@ import kotlinx.coroutines.flow.flow
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-fun Flow<StreamFrame>.reduceToAgentOutput(): Flow<List<AgentOutput>> {
+fun <T> Flow<AgentAdapterFrame<T>>.reduceToAgentOutput(
+    customAdapter: (frame: T) -> AgentOutput.Custom<T>? = { null },
+): Flow<List<AgentOutput<T>>> {
     return flow {
-        val reducer = StreamFrameReducer()
+        val reducer = StreamFrameReducer(customAdapter)
         this@reduceToAgentOutput.collect { frame ->
             if (reducer.reduce(frame)) {
                 emit(reducer.outputs)
@@ -19,26 +21,49 @@ fun Flow<StreamFrame>.reduceToAgentOutput(): Flow<List<AgentOutput>> {
     }
 }
 
-private class StreamFrameReducer {
+sealed interface AgentAdapterFrame<T> {
 
-    private val outputsById = linkedMapOf<String, AgentOutput>()
+    data class LlmFrame<T>(val frame: StreamFrame) : AgentAdapterFrame<T>
+
+    data class CustomFrame<T>(val frame: T) : AgentAdapterFrame<T>
+}
+
+private class StreamFrameReducer<T>(
+    private val customAdapter: (frame: T) -> AgentOutput.Custom<T>?,
+) {
+
+    private val outputsById = linkedMapOf<String, AgentOutput<T>>()
     private val textById = mutableMapOf<String, String>()
     private val reasoningById = mutableMapOf<String, String>()
-    private val toolCallsById = mutableMapOf<String, ToolCallState>()
+    private val toolCallsById = mutableMapOf<String, ToolCallState<T>>()
     private val createAtById = mutableMapOf<String, Instant>()
 
-    val outputs: List<AgentOutput>
+    val outputs: List<AgentOutput<T>>
         get() = outputsById.values.toList()
 
-    fun reduce(frame: StreamFrame): Boolean {
+    fun reduce(frame: AgentAdapterFrame<T>): Boolean {
         return when (frame) {
-            is StreamFrame.TextDelta -> reduceTextDelta(frame)
-            is StreamFrame.TextComplete -> reduceTextComplete(frame)
-            is StreamFrame.ReasoningDelta -> reduceReasoningDelta(frame)
-            is StreamFrame.ReasoningComplete -> reduceReasoningComplete(frame)
-            is StreamFrame.ToolCallDelta -> reduceToolCallDelta(frame)
-            is StreamFrame.ToolCallComplete -> reduceToolCallComplete(frame)
-            is StreamFrame.End -> false
+            is AgentAdapterFrame.LlmFrame<T> -> {
+                when (frame.frame) {
+                    is StreamFrame.TextDelta -> reduceTextDelta(frame.frame)
+                    is StreamFrame.TextComplete -> reduceTextComplete(frame.frame)
+                    is StreamFrame.ReasoningDelta -> reduceReasoningDelta(frame.frame)
+                    is StreamFrame.ReasoningComplete -> reduceReasoningComplete(frame.frame)
+                    is StreamFrame.ToolCallDelta -> reduceToolCallDelta(frame.frame)
+                    is StreamFrame.ToolCallComplete -> reduceToolCallComplete(frame.frame)
+                    is StreamFrame.End -> false
+                }
+            }
+
+            is AgentAdapterFrame.CustomFrame -> {
+                val customOutput = customAdapter(frame.frame)
+                if (customOutput == null) {
+                    false
+                } else {
+                    outputsById[customOutput.id] = customOutput
+                    true
+                }
+            }
         }
     }
 
@@ -97,7 +122,7 @@ private class StreamFrameReducer {
 
     private fun reduceToolCallDelta(frame: StreamFrame.ToolCallDelta): Boolean {
         val id = frame.toolCallId
-        val current = toolCallsById[id] ?: ToolCallState(
+        val current = toolCallsById[id] ?: ToolCallState<T>(
             id = id,
             createAt = createAtById.getOrCreate(id),
         )
@@ -113,7 +138,7 @@ private class StreamFrameReducer {
 
     private fun reduceToolCallComplete(frame: StreamFrame.ToolCallComplete): Boolean {
         val id = frame.toolCallId
-        val current = toolCallsById[id] ?: ToolCallState(
+        val current = toolCallsById[id] ?: ToolCallState<T>(
             id = id,
             createAt = createAtById.getOrCreate(id),
         )
@@ -134,7 +159,7 @@ private fun MutableMap<String, Instant>.getOrCreate(id: String): Instant {
     return getOrPut(id) { Clock.System.now() }
 }
 
-private data class ToolCallState(
+private data class ToolCallState<T>(
     val id: String,
     val name: String = "",
     val arguments: String = "",
@@ -142,7 +167,7 @@ private data class ToolCallState(
     val createAt: Instant,
 ) {
 
-    fun toAgentOutput(): AgentOutput.ToolCall {
+    fun toAgentOutput(): AgentOutput.ToolCall<T> {
         return AgentOutput.ToolCall(
             id = id,
             name = name,
