@@ -32,9 +32,9 @@ import com.zhangke.compose.agent.render.theme.AgentColorScheme
 import com.zhangke.compose.agent.render.theme.AgentRenderTheme
 
 @Composable
-fun AgentToolCall(
+fun <T> AgentToolCall(
     modifier: Modifier = Modifier,
-    agentToolCall: AgentOutput.ToolCall,
+    agentToolCall: AgentOutput.ToolCall<T>,
 ) {
     var expanded by remember(agentToolCall.id) { mutableStateOf(false) }
     val colors = AgentRenderTheme.colorScheme
@@ -128,7 +128,7 @@ private fun ToolCallLog(
     }
 }
 
-private fun AgentOutput.ToolCall.commandTitle(): String {
+private fun <T> AgentOutput.ToolCall<T>.commandTitle(): String {
     val command = arguments.toSingleLine()
     return buildString {
         if (name.isNotEmpty() && name.isNotBlank()) {
@@ -142,11 +142,11 @@ private fun AgentOutput.ToolCall.commandTitle(): String {
     }
 }
 
-private fun AgentOutput.ToolCall.logTitle(): String {
+private fun <T> AgentOutput.ToolCall<T>.logTitle(): String {
     return name.ifBlank { "Tool" }
 }
 
-private fun AgentOutput.ToolCall.logContent(): String {
+private fun <T> AgentOutput.ToolCall<T>.logContent(): String {
     return buildString {
         if (arguments.isNotBlank()) {
             append("$ ")

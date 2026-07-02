@@ -9,9 +9,9 @@ import com.zhangke.compose.agent.render.model.AgentOutput
 import com.zhangke.compose.agent.render.theme.AgentRenderTheme
 
 @Composable
-fun AgentAssistantText(
+fun <T> AgentAssistantText(
     modifier: Modifier = Modifier,
-    agentToolCall: AgentOutput.AssistantText,
+    agentToolCall: AgentOutput.AssistantText<T>,
 ) {
     BasicText(
         text = agentToolCall.content,

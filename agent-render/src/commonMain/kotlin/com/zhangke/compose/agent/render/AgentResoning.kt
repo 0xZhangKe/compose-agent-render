@@ -14,9 +14,9 @@ import com.zhangke.compose.agent.render.model.AgentOutput
 import com.zhangke.compose.agent.render.theme.AgentRenderTheme
 
 @Composable
-fun AgentReasoning(
+fun <T> AgentReasoning(
     modifier: Modifier = Modifier,
-    agentToolCall: AgentOutput.Reasoning,
+    agentToolCall: AgentOutput.Reasoning<T>,
 ) {
     BasicText(
         text = agentToolCall.content,
