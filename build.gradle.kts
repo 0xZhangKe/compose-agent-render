@@ -1,5 +1,6 @@
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
 import com.vanniktech.maven.publish.SonatypeHost
+import org.gradle.plugins.signing.SigningExtension
 
 plugins {
     alias(libs.plugins.android.application) apply false
@@ -12,13 +13,27 @@ plugins {
 }
 
 allprojects {
-    group = "com.zhangke.compose.chat"
-    version = "0.0.1-SNAPSHOT"
+    group = "io.github.0xzhangke"
+    version = "0.0.1"
 
     plugins.withId("com.vanniktech.maven.publish.base") {
         extensions.configure<MavenPublishBaseExtension>("mavenPublishing") {
             publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = true)
+            val hasInMemorySigningKey = providers.gradleProperty("signingInMemoryKey").isPresent
+            val hasFileSigningKey = providers.gradleProperty("signing.keyId").isPresent &&
+                providers.gradleProperty("signing.password").isPresent &&
+                providers.gradleProperty("signing.secretKeyRingFile").isPresent
+            val hasGpgSigningKey = providers.gradleProperty("signing.gnupg.keyName").isPresent
+            check(hasInMemorySigningKey || hasFileSigningKey || hasGpgSigningKey) {
+                "Publishing requires signing. Configure signingInMemoryKey, signing.keyId/password/secretKeyRingFile, " +
+                    "or signing.gnupg.keyName before running publish tasks."
+            }
             signAllPublications()
+            if (hasGpgSigningKey) {
+                extensions.configure<SigningExtension>("signing") {
+                    useGpgCmd()
+                }
+            }
             pom {
                 name.set("Compose Agent Render")
                 description.set("Compose Multiplatform renderer for agent output streams.")
