@@ -32,6 +32,7 @@ fun InputBar(
     modifier: Modifier,
     minLines: Int = 2,
     maxLines: Int = Int.MAX_VALUE,
+    processing: Boolean = false,
     onSendClick: (String) -> Unit,
 ) {
     Box(
@@ -58,19 +59,26 @@ fun InputBar(
                 onValueChange = { inputtedValue = it },
             )
 
-            Box(
-                modifier = Modifier.align(Alignment.End)
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .clickable(onClick = { onSendClick(inputtedValue.text) }),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    modifier = Modifier,
-                    painter = rememberVectorPainter(ArrowUpward),
-                    contentDescription = null,
-                    tint = AgentRenderTheme.colorScheme.content,
+            if (processing) {
+                InputBarProcessingIndicator(
+                    modifier = Modifier.align(Alignment.End),
+                    onClick = {},
                 )
+            } else {
+                Box(
+                    modifier = Modifier.align(Alignment.End)
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .clickable(onClick = { onSendClick(inputtedValue.text) }),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        modifier = Modifier,
+                        painter = rememberVectorPainter(ArrowUpward),
+                        contentDescription = null,
+                        tint = AgentRenderTheme.colorScheme.content,
+                    )
+                }
             }
         }
     }

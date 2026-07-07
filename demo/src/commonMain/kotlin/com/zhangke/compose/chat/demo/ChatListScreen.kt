@@ -47,6 +47,7 @@ fun ChatListScreen() {
                             .fillMaxWidth()
                             .padding(bottom = 24.dp)
                             .align(Alignment.BottomCenter),
+                        processing = true,
                         onSendClick = {
 
                         },
