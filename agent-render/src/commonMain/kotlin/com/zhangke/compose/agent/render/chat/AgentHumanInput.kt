@@ -27,7 +27,7 @@ fun AgentHumanInput(
             .padding(16.dp),
     ) {
         BasicText(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier,
             text = input.text,
             style = typography.content.copy(
                 color = colors.content,

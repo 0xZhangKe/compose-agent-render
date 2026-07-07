@@ -1,8 +1,10 @@
 package com.zhangke.compose.agent.render.chat
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -38,12 +40,18 @@ fun AgentChatList(
                 }
 
                 is AgentChatMessage.HumanInputMessage -> {
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        AgentHumanInput(
-                            modifier = Modifier.fillMaxWidth(0.75F)
-                                .align(Alignment.CenterEnd),
-                            input = message,
-                        )
+                    BoxWithConstraints(
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Box(
+                            modifier = Modifier.align(Alignment.CenterEnd)
+                                .widthIn(max = maxWidth * 0.75F),
+                        ) {
+                            AgentHumanInput(
+                                modifier = Modifier,
+                                input = message,
+                            )
+                        }
                     }
                 }
             }
