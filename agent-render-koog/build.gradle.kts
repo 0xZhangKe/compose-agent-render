@@ -30,7 +30,11 @@ dependencies {
 
 android {
     namespace = "com.zhangke.compose.agent.render.koog"
-    compileSdk = 37
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 0
+        }
+    }
 
     defaultConfig {
         minSdk = 23
