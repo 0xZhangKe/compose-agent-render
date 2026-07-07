@@ -15,12 +15,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.zhangke.compose.agent.render.AgentOutput
 import com.zhangke.compose.agent.render.model.AgentChatMessage
+import com.zhangke.compose.agent.render.model.AgentOutputMessageState
 
 @Composable
 fun AgentChatList(
     modifier: Modifier,
     messageList: List<AgentChatMessage>,
-    completed: Boolean,
     listState: LazyListState = rememberLazyListState(),
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
@@ -35,7 +35,7 @@ fun AgentChatList(
                     AgentOutput(
                         modifier = Modifier.fillMaxWidth(),
                         outputList = message.outputList,
-                        completed = completed,
+                        completed = message.state is AgentOutputMessageState.Completed || message.state is AgentOutputMessageState.Error,
                     )
                 }
 
@@ -50,6 +50,7 @@ fun AgentChatList(
                             AgentHumanInput(
                                 modifier = Modifier,
                                 input = message,
+                                state = message.state,
                             )
                         }
                     }

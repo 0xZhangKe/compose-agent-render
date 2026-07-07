@@ -20,6 +20,8 @@ import com.zhangke.compose.agent.render.chat.AgentChatList
 import com.zhangke.compose.agent.render.chat.InputBar
 import com.zhangke.compose.agent.render.model.AgentChatMessage
 import com.zhangke.compose.agent.render.model.AgentOutput
+import com.zhangke.compose.agent.render.model.AgentOutputMessageState
+import com.zhangke.compose.agent.render.model.HumanInputMessageState
 import com.zhangke.compose.agent.render.model.ToolStatus
 import com.zhangke.compose.agent.render.theme.AgentRenderTheme
 import kotlin.time.Instant
@@ -38,7 +40,6 @@ fun ChatListScreen() {
                     AgentChatList(
                         modifier = Modifier.fillMaxSize(),
                         messageList = messageList,
-                        completed = true,
                         contentPadding = PaddingValues(top = 24.dp, bottom = inputBarHeight + 16.dp),
                     )
                     InputBar(
@@ -63,6 +64,7 @@ private fun mockMessageList(): List<AgentChatMessage> {
         AgentChatMessage.HumanInputMessage(
             text = "帮我检查一下当前项目里的聊天列表组件，顺便展示几种 agent 输出状态和 Markdown 渲染效果。",
             createAt = timestamp(minutes = 0),
+            state = HumanInputMessageState.Sent,
         ),
         AgentChatMessage.AgentOutputMessage(
             outputList = listOf(
@@ -99,10 +101,12 @@ private fun mockMessageList(): List<AgentChatMessage> {
                     completed = true,
                 ),
             ),
+            state = AgentOutputMessageState.Completed,
         ),
         AgentChatMessage.HumanInputMessage(
             text = "再模拟一次代码分析过程：包含推理、命令、表格和最终结论。",
             createAt = timestamp(minutes = 3),
+            state = HumanInputMessageState.Sent,
         ),
         AgentChatMessage.AgentOutputMessage(
             outputList = listOf(
@@ -152,10 +156,12 @@ private fun mockMessageList(): List<AgentChatMessage> {
                     completed = true,
                 ),
             ),
+            state = AgentOutputMessageState.Completed,
         ),
         AgentChatMessage.HumanInputMessage(
             text = "加一个工具还在运行中的状态，用来观察 loading 场景。",
             createAt = timestamp(minutes = 6),
+            state = HumanInputMessageState.Sent,
         ),
         AgentChatMessage.AgentOutputMessage(
             outputList = listOf(
@@ -180,17 +186,29 @@ private fun mockMessageList(): List<AgentChatMessage> {
                     completed = false,
                 ),
             ),
+            state = AgentOutputMessageState.Processing,
+        ),
+        AgentChatMessage.HumanInputMessage(
+            text = "这条消息还在发送中，用来检查用户消息 Sending 状态。",
+            createAt = timestamp(minutes = 8),
+            state = HumanInputMessageState.Sending,
+        ),
+        AgentChatMessage.HumanInputMessage(
+            text = "这条消息发送失败，应该在气泡底部显示错误提示。",
+            createAt = timestamp(minutes = 9),
+            state = HumanInputMessageState.Error(IllegalStateException("Network unavailable")),
         ),
         AgentChatMessage.HumanInputMessage(
             text = "再补一个失败工具调用，并让最终回答包含代码块。",
-            createAt = timestamp(minutes = 8),
+            createAt = timestamp(minutes = 10),
+            state = HumanInputMessageState.Sent,
         ),
         AgentChatMessage.AgentOutputMessage(
             outputList = listOf(
                 AgentOutput.Reasoning(
                     id = "reasoning-4",
                     content = "需要展示错误日志的排版，同时验证最终 Markdown 代码块不会撑乱列表宽度。",
-                    createAt = timestamp(minutes = 9),
+                    createAt = timestamp(minutes = 11),
                 ),
                 AgentOutput.ToolCall(
                     id = "tool-4",
@@ -198,7 +216,7 @@ private fun mockMessageList(): List<AgentChatMessage> {
                     arguments = "cat missing-file.txt",
                     output = "cat: missing-file.txt: No such file or directory",
                     status = ToolStatus.Error,
-                    createAt = timestamp(minutes = 9),
+                    createAt = timestamp(minutes = 11),
                 ),
                 AgentOutput.AssistantText(
                     id = "assistant-4",
@@ -218,21 +236,23 @@ private fun mockMessageList(): List<AgentChatMessage> {
 
                         这类输出通常不代表整个任务失败，最终回答仍然可以继续给出替代方案或下一步建议。
                     """.trimIndent(),
-                    createAt = timestamp(minutes = 10),
+                    createAt = timestamp(minutes = 12),
                     completed = true,
                 ),
             ),
+            state = AgentOutputMessageState.Error(IllegalStateException("Tool exited with code 1")),
         ),
         AgentChatMessage.HumanInputMessage(
             text = "最后给一个完整总结，内容长一点，用来测试滚动和最终结果折叠。",
-            createAt = timestamp(minutes = 11),
+            createAt = timestamp(minutes = 13),
+            state = HumanInputMessageState.Sent,
         ),
         AgentChatMessage.AgentOutputMessage(
             outputList = listOf(
                 AgentOutput.Reasoning(
                     id = "reasoning-5",
                     content = "总结需要覆盖当前 demo 的视觉检查点，并保持段落、列表、行内代码的混排。",
-                    createAt = timestamp(minutes = 12),
+                    createAt = timestamp(minutes = 14),
                 ),
                 AgentOutput.ToolCall(
                     id = "tool-5",
@@ -243,7 +263,7 @@ private fun mockMessageList(): List<AgentChatMessage> {
                         M demo/src/commonMain/kotlin/com/zhangke/compose/chat/demo/ChatListScreen.kt
                     """.trimIndent(),
                     status = ToolStatus.Success,
-                    createAt = timestamp(minutes = 12),
+                    createAt = timestamp(minutes = 14),
                 ),
                 AgentOutput.AssistantText(
                     id = "assistant-5",
@@ -260,10 +280,11 @@ private fun mockMessageList(): List<AgentChatMessage> {
 
                         这组数据适合用来检查主题中的字体、颜色和 shape 调整是否影响聊天列表的整体稳定性。后续如果要验证 streaming，可以把最后一条 `AssistantText` 的 `completed` 在收尾前设为 `false`，收到结束事件后再切到 `true`。
                     """.trimIndent(),
-                    createAt = timestamp(minutes = 13),
+                    createAt = timestamp(minutes = 15),
                     completed = true,
                 ),
             ),
+            state = AgentOutputMessageState.Completed,
         ),
     )
 }
