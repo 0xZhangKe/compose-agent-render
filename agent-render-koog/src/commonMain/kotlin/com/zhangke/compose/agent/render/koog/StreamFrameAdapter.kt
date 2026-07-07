@@ -109,7 +109,7 @@ private class StreamFrameReducer<T>(
     private fun reduceReasoningComplete(frame: StreamFrame.ReasoningComplete): Boolean {
         val id = frame.reasoningId
         val content = frame.summary?.joinToString(separator = "")
-            ?: frame.text.joinToString(separator = "")
+            ?: frame.content.joinToString(separator = "")
         reasoningById[id] = content
         outputsById[id] = AgentOutput.Reasoning(
             id = id,

@@ -71,7 +71,7 @@ class MockAgent(
                 ),
                 StreamFrame.ReasoningComplete(
                     id = "reasoning-1",
-                    text = listOf(
+                    content = listOf(
                         "Inspect the user request and identify the renderer component that owns tool call layout. ",
                         "Prefer theme-provided colors, typography, and icons so the UI can be customized by consumers. ",
                     ),
@@ -199,7 +199,7 @@ class MockAgent(
             add(
                 StreamFrame.ReasoningComplete(
                     id = id,
-                    text = text,
+                    content = text,
                     summary = summary,
                     index = 0,
                 ),

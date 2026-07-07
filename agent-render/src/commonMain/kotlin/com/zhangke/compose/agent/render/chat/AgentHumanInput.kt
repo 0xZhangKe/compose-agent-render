@@ -2,7 +2,6 @@ package com.zhangke.compose.agent.render.chat
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
@@ -24,7 +23,7 @@ fun AgentHumanInput(
         modifier = modifier
             .clip(AgentRenderTheme.shape.medium)
             .background(colors.humanInputContainer)
-            .padding(16.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
         BasicText(
             modifier = Modifier,
