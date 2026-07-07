@@ -7,6 +7,8 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import com.zhangke.compose.agent.render.icons.IconChevronDown
 import com.zhangke.compose.agent.render.icons.IconChevronUp
 import com.zhangke.compose.agent.render.icons.IconCode
+import com.zhangke.compose.agent.render.icons.KeyboardArrowDown
+import com.zhangke.compose.agent.render.icons.KeyboardArrowRight
 
 interface AgentIconsProvider {
 
@@ -25,11 +27,11 @@ object DefaultAgentIconProvider : AgentIconsProvider {
 
     override val expandMoreIcon: Painter
         @Composable
-        get() = rememberVectorPainter(IconChevronDown)
+        get() = rememberVectorPainter(KeyboardArrowRight)
 
     override val expandLessIcon: Painter
         @Composable
-        get() = rememberVectorPainter(IconChevronUp)
+        get() = rememberVectorPainter(KeyboardArrowDown)
 }
 
 val LocalAgentIconsProvider = compositionLocalOf<AgentIconsProvider> { DefaultAgentIconProvider }

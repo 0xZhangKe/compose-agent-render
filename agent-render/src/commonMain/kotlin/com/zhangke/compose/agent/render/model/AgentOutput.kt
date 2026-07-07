@@ -25,6 +25,7 @@ sealed interface AgentOutput<T> {
         override val id: String,
         val content: String,
         val createAt: Instant,
+        val completed: Boolean,
     ) : AgentOutput<T>
 
     data class Custom<T>(val data: T, override val id: String) : AgentOutput<T>

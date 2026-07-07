@@ -18,6 +18,7 @@ import com.zhangke.compose.agent.render.model.AgentChatMessage
 fun AgentChatList(
     modifier: Modifier,
     messageList: List<AgentChatMessage>,
+    completed: Boolean,
     listState: LazyListState = rememberLazyListState(),
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
@@ -32,6 +33,7 @@ fun AgentChatList(
                     AgentOutput(
                         modifier = Modifier.fillMaxWidth(),
                         outputList = message.outputList,
+                        completed = completed,
                     )
                 }
 

@@ -8,6 +8,8 @@ coroutines = "1.11.0"
 koog = "0.8.0"
 publish = "0.29.0"
 
+composeMarkdown="0.43.0"
+
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidxActivity" }
 compose-foundation = { group = "org.jetbrains.compose.foundation", name = "foundation", version.ref = "compose-multiplatform" }
@@ -19,6 +21,8 @@ jetbrains-material3 = { group = "org.jetbrains.compose.material3", name = "mater
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 koog-agents = { module = "ai.koog:koog-agents", version.ref = "koog" }
 koog-openai-client = { module = "ai.koog:prompt-executor-openai-client", version.ref = "koog" }
+
+compose-markdown = { group = "com.mikepenz", name = "multiplatform-markdown-renderer", version.ref = "composeMarkdown" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }

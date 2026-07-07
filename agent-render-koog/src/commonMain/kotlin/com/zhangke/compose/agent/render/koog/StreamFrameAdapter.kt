@@ -75,17 +75,18 @@ private class StreamFrameReducer<T>(
             id = id,
             content = content,
             createAt = createAtById.getOrCreate(id),
+            completed = false,
         )
         return true
     }
 
     private fun reduceTextComplete(frame: StreamFrame.TextComplete): Boolean {
         val id = frame.assistantId
-        textById[id] = frame.text
         outputsById[id] = AgentOutput.AssistantText(
             id = id,
             content = frame.text,
             createAt = createAtById.getOrCreate(id),
+            completed = true,
         )
         textById.remove(id)
         createAtById.remove(id)

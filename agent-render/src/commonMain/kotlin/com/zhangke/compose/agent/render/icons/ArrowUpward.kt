@@ -1,6 +1,11 @@
 package com.zhangke.compose.agent.render.icons
 
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.tooling.preview.Preview
+import com.zhangke.compose.agent.render.foundation.Icon
 
 internal val ArrowUpward: ImageVector
     get() {
@@ -26,3 +31,13 @@ internal val ArrowUpward: ImageVector
     }
 
 private var cachingArrowUpward: ImageVector? = null
+
+@Composable
+@Preview
+private fun PreviewArrowUpward(){
+    Icon(
+        painter = rememberVectorPainter(ArrowUpward),
+        modifier = Modifier,
+        contentDescription = null,
+    )
+}

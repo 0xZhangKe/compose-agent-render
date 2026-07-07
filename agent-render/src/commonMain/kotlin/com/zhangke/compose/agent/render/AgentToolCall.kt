@@ -1,21 +1,23 @@
 package com.zhangke.compose.agent.render
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,10 +27,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mikepenz.markdown.compose.Markdown
+import com.mikepenz.markdown.model.rememberStreamingMarkdownState
 import com.zhangke.compose.agent.render.foundation.Icon
 import com.zhangke.compose.agent.render.model.AgentOutput
-import com.zhangke.compose.agent.render.model.ToolStatus
-import com.zhangke.compose.agent.render.theme.AgentColorScheme
 import com.zhangke.compose.agent.render.theme.AgentRenderTheme
 
 @Composable
@@ -61,23 +63,27 @@ fun <T> AgentToolCall(
                 modifier = Modifier.size(18.dp),
             )
             BasicText(
+                modifier = Modifier.weight(1F, false),
                 text = agentToolCall.commandTitle(),
-                modifier = Modifier.weight(1F),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = typography.toolCallCommand.copy(
                     color = colors.contentVariant,
                 ),
             )
+            Spacer(modifier = Modifier.width(2.dp))
             Icon(
                 painter = if (expanded) icons.expandLessIcon else icons.expandMoreIcon,
                 contentDescription = null,
                 tint = colors.contentVariant,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(16.dp),
             )
         }
 
-        if (expanded) {
+        AnimatedVisibility(
+            modifier = Modifier.fillMaxWidth(),
+            visible = expanded,
+        ) {
             ToolCallLog(
                 title = agentToolCall.logTitle(),
                 content = agentToolCall.logContent(),
@@ -116,12 +122,15 @@ private fun ToolCallLog(
                 modifier = Modifier.fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
             ) {
-                BasicText(
-                    text = content,
+                val streamingMarkdownState = rememberStreamingMarkdownState()
+                LaunchedEffect(content) {
+                    streamingMarkdownState.append(content)
+                }
+                Markdown(
+                    typography = AgentRenderTheme.typography.markdownTypography,
                     modifier = Modifier.fillMaxWidth(),
-                    style = typography.toolCallLine.copy(
-                        color = colors.toolCallContent,
-                    ),
+                    streamingMarkdownState = streamingMarkdownState,
+                    colors = AgentRenderTheme.colorScheme.markdownColors,
                 )
             }
         }

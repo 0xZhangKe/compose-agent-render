@@ -4,6 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
+import com.mikepenz.markdown.model.DefaultMarkdownColors
+import com.mikepenz.markdown.model.MarkdownColors
 
 @Immutable
 data class AgentColorScheme(
@@ -19,6 +21,14 @@ data class AgentColorScheme(
     val inputBarContainer: Color,
 ) {
 
+    internal val markdownColors: MarkdownColors = DefaultMarkdownColors(
+        text = content,
+        codeBackground = toolCallContainer,
+        inlineCodeBackground = toolCallContainer,
+        dividerColor = outline,
+        tableBackground = toolCallContainer,
+    )
+
     companion object {
 
         @Composable
@@ -30,7 +40,7 @@ data class AgentColorScheme(
                 link = Color(0xFF2E87FF),
                 error = Color(0xFFA0004C),
                 humanInputContainer = Color(0xFFECEDF7),
-                toolCallContainer = Color.Transparent,
+                toolCallContainer = Color(0xFFECEDF7),
                 toolCallContent = Color(0xFF191B22),
                 outline = Color(0xFFC2C6D6),
                 inputBarContainer = Color(0xFFF9FBFF),
@@ -46,7 +56,7 @@ data class AgentColorScheme(
                 link = Color(0xFFADC6FF),
                 error = Color(0xFFFFB1C4),
                 humanInputContainer = Color(0xFF1D2027),
-                toolCallContainer = Color.Transparent,
+                toolCallContainer = Color(0xFF1D2027),
                 toolCallContent = Color(0xFFE1E2EC),
                 outline = Color(0xFF424753),
                 inputBarContainer = Color(0xFF10131A),
