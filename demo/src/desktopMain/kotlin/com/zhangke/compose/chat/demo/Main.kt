@@ -9,5 +9,6 @@ fun main() = application {
         title = "compose agent renderer",
     ) {
         ChatListScreen()
+//        DemoList()
     }
 }

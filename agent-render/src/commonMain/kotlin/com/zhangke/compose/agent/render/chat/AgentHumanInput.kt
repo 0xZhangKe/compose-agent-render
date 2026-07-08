@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,17 +26,19 @@ fun AgentHumanInput(
     Column(
         modifier = modifier,
     ) {
-        BasicText(
-            modifier = Modifier
-                .clip(AgentRenderTheme.shape.medium)
-                .background(colors.humanInputContainer)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            text = input.text,
-            style = typography.content.copy(
-                color = colors.content,
-                textAlign = TextAlign.Start,
-            ),
-        )
+        SelectionContainer {
+            BasicText(
+                modifier = Modifier
+                    .clip(AgentRenderTheme.shape.medium)
+                    .background(colors.humanInputContainer)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                text = input.text,
+                style = typography.content.copy(
+                    color = colors.content,
+                    textAlign = TextAlign.Start,
+                ),
+            )
+        }
         when (state) {
             is HumanInputMessageState.Sending -> {
                 BasicText(

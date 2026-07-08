@@ -3,6 +3,7 @@ package com.zhangke.compose.agent.render
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
@@ -22,14 +23,16 @@ fun <T> AgentReasoning(
     LaunchedEffect(agentToolCall) {
         streamingMarkdownState.append(agentToolCall.content)
     }
-    Markdown(
-        typography = AgentRenderTheme.typography.markdownTypography,
-        modifier = modifier
-            .padding(vertical = 6.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(AgentRenderTheme.colorScheme.contentVariant.copy(alpha = 0.08F))
-            .padding(12.dp),
-        streamingMarkdownState = streamingMarkdownState,
-        colors = AgentRenderTheme.colorScheme.markdownColors,
-    )
+    SelectionContainer {
+        Markdown(
+            typography = AgentRenderTheme.typography.markdownTypography,
+            modifier = modifier
+                .padding(vertical = 6.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(AgentRenderTheme.colorScheme.contentVariant.copy(alpha = 0.08F))
+                .padding(12.dp),
+            streamingMarkdownState = streamingMarkdownState,
+            colors = AgentRenderTheme.colorScheme.markdownColors,
+        )
+    }
 }

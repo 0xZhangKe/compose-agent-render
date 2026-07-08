@@ -1,6 +1,7 @@
 package com.zhangke.compose.agent.render
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
@@ -19,10 +20,12 @@ fun <T> AgentAssistantText(
     LaunchedEffect(agentToolCall) {
         streamingMarkdownState.append(agentToolCall.content)
     }
-    Markdown(
-        modifier = modifier.padding(vertical = 6.dp),
-        streamingMarkdownState = streamingMarkdownState,
-        typography = AgentRenderTheme.typography.markdownTypography,
-        colors = AgentRenderTheme.colorScheme.markdownColors,
-    )
+    SelectionContainer {
+        Markdown(
+            modifier = modifier.padding(vertical = 6.dp),
+            streamingMarkdownState = streamingMarkdownState,
+            typography = AgentRenderTheme.typography.markdownTypography,
+            colors = AgentRenderTheme.colorScheme.markdownColors,
+        )
+    }
 }
