@@ -33,9 +33,9 @@ private val BottomReachedThreshold = 100.dp
 
 @OptIn(FlowPreview::class)
 @Composable
-fun AgentChatList(
+fun <T> AgentChatList(
     modifier: Modifier,
-    messageList: List<AgentChatMessage<Any>>,
+    messageList: List<AgentChatMessage<T>>,
     listState: LazyListState = rememberLazyListState(),
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
@@ -49,7 +49,6 @@ fun AgentChatList(
         snapshotFlow { listState.layoutInfo }
             .debounce(100.milliseconds)
             .collect { layoutInfo ->
-                println("layoutInfo: $layoutInfo")
                 val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()
                 if (lastVisibleItem != null) {
                     if (lastItemHeight != lastVisibleItem.size && isAtBottom) {
@@ -62,7 +61,6 @@ fun AgentChatList(
                     }
                 }
                 lastItemHeight = lastVisibleItem?.size ?: 0
-                println("is at bottom: $isAtBottom")
             }
     }
 
