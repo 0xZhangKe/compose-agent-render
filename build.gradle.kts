@@ -14,7 +14,7 @@ plugins {
 
 allprojects {
     group = "io.github.0xzhangke"
-    version = "0.0.6"
+    version = "0.0.7"
 
     plugins.withId("com.vanniktech.maven.publish.base") {
         extensions.configure<MavenPublishBaseExtension>("mavenPublishing") {

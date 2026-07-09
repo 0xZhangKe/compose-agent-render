@@ -2,18 +2,18 @@ package com.zhangke.compose.agent.render.model
 
 import kotlin.time.Instant
 
-sealed interface AgentChatMessage {
+sealed interface AgentChatMessage<T> {
 
-    data class AgentOutputMessage(
-        val outputList: List<AgentOutput<Any>>,
+    data class AgentOutputMessage<T>(
+        val outputList: List<AgentOutput<T>>,
         val state: AgentOutputMessageState,
-    ) : AgentChatMessage
+    ) : AgentChatMessage<T>
 
-    data class HumanInputMessage(
+    data class HumanInputMessage<T>(
         val text: String,
         val createAt: Instant,
         val state: HumanInputMessageState,
-    ) : AgentChatMessage
+    ) : AgentChatMessage<T>
 }
 
 sealed interface AgentOutputMessageState {
