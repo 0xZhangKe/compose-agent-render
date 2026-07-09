@@ -28,11 +28,12 @@ import com.zhangke.compose.agent.render.theme.AgentRenderTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 
 @Composable
 fun ChatListScreen() {
-    var messageList by remember { mutableStateOf(emptyList<AgentChatMessage>()) }
+    var messageList by remember { mutableStateOf(emptyList<AgentChatMessage<Any>>()) }
     val inputBarProcessing = messageList.lastOrNull().isProcessing()
     LaunchedEffect(Unit) {
         mockMessageFlow().collect { messageList = it }
@@ -68,7 +69,7 @@ fun ChatListScreen() {
     }
 }
 
-private fun AgentChatMessage?.isProcessing(): Boolean {
+private fun AgentChatMessage<*>?.isProcessing(): Boolean {
     return when (this) {
         is AgentChatMessage.AgentOutputMessage -> state is AgentOutputMessageState.Processing
         is AgentChatMessage.HumanInputMessage -> state is HumanInputMessageState.Sending
@@ -76,24 +77,24 @@ private fun AgentChatMessage?.isProcessing(): Boolean {
     }
 }
 
-private fun mockMessageFlow(): Flow<List<AgentChatMessage>> {
+private fun mockMessageFlow(): Flow<List<AgentChatMessage<Any>>> {
     return flow {
-        val messages = mutableListOf<AgentChatMessage>()
+        val messages = mutableListOf<AgentChatMessage<Any>>()
 
         suspend fun emitMessages(delayMillis: Long = 700L) {
             emit(messages.toList())
-            delay(delayMillis)
+            delay(delayMillis.milliseconds)
         }
 
-        fun append(message: AgentChatMessage) {
+        fun append(message: AgentChatMessage<Any>) {
             messages += message
         }
 
-        fun replaceLast(message: AgentChatMessage) {
+        fun replaceLast(message: AgentChatMessage<Any>) {
             messages[messages.lastIndex] = message
         }
 
-        val firstHuman = AgentChatMessage.HumanInputMessage(
+        val firstHuman = AgentChatMessage.HumanInputMessage<Any>(
             text = "Please inspect the chat list component in this project and show several agent output states plus Markdown rendering.",
             createAt = timestamp(minutes = 0),
             state = HumanInputMessageState.Sending,
@@ -174,7 +175,7 @@ private fun mockMessageFlow(): Flow<List<AgentChatMessage>> {
         )
         emitMessages()
 
-        val secondHuman = AgentChatMessage.HumanInputMessage(
+        val secondHuman = AgentChatMessage.HumanInputMessage<Any>(
             text = "Simulate another code analysis pass with reasoning, commands, a table, and a final conclusion.",
             createAt = timestamp(minutes = 3),
             state = HumanInputMessageState.Sent,
@@ -195,7 +196,7 @@ private fun mockMessageFlow(): Flow<List<AgentChatMessage>> {
                         """.trimIndent(),
                         createAt = timestamp(minutes = 4),
                     ),
-                    AgentOutput.ToolCall(
+                    AgentOutput.ToolCall<Any>(
                         id = "tool-2",
                         name = "sed",
                         arguments = "sed -n '1,140p' agent-render/src/commonMain/kotlin/com/zhangke/compose/agent/render/AgentOutput.kt",
@@ -219,7 +220,7 @@ private fun mockMessageFlow(): Flow<List<AgentChatMessage>> {
         )
         emitMessages()
         replaceLast(
-            AgentChatMessage.AgentOutputMessage(
+            AgentChatMessage.AgentOutputMessage<Any>(
                 outputList = listOf(
                     AgentOutput.Reasoning(
                         id = "reasoning-2",
@@ -273,7 +274,7 @@ private fun mockMessageFlow(): Flow<List<AgentChatMessage>> {
         emitMessages()
 
         append(
-            AgentChatMessage.HumanInputMessage(
+            AgentChatMessage.HumanInputMessage<Any>(
                 text = "Add a running tool state so the loading scenario can be inspected.",
                 createAt = timestamp(minutes = 6),
                 state = HumanInputMessageState.Sent,
@@ -281,7 +282,7 @@ private fun mockMessageFlow(): Flow<List<AgentChatMessage>> {
         )
         emitMessages()
         append(
-            AgentChatMessage.AgentOutputMessage(
+            AgentChatMessage.AgentOutputMessage<Any>(
                 outputList = listOf(
                     AgentOutput.ToolCall(
                         id = "tool-3",
@@ -310,7 +311,7 @@ private fun mockMessageFlow(): Flow<List<AgentChatMessage>> {
         emitMessages(1200L)
 
         append(
-            AgentChatMessage.HumanInputMessage(
+            AgentChatMessage.HumanInputMessage<Any>(
                 text = "This message is still sending, which checks the user-message Sending state.",
                 createAt = timestamp(minutes = 8),
                 state = HumanInputMessageState.Sending,
@@ -318,7 +319,7 @@ private fun mockMessageFlow(): Flow<List<AgentChatMessage>> {
         )
         emitMessages()
         replaceLast(
-            AgentChatMessage.HumanInputMessage(
+            AgentChatMessage.HumanInputMessage<Any>(
                 text = "This message failed to send, so an error should appear at the bottom of the bubble.",
                 createAt = timestamp(minutes = 9),
                 state = HumanInputMessageState.Error(IllegalStateException("Network unavailable")),
@@ -327,7 +328,7 @@ private fun mockMessageFlow(): Flow<List<AgentChatMessage>> {
         emitMessages()
 
         append(
-            AgentChatMessage.HumanInputMessage(
+            AgentChatMessage.HumanInputMessage<Any>(
                 text = "Add a failed tool call and include a code block in the final answer.",
                 createAt = timestamp(minutes = 10),
                 state = HumanInputMessageState.Sent,
@@ -335,7 +336,7 @@ private fun mockMessageFlow(): Flow<List<AgentChatMessage>> {
         )
         emitMessages()
         append(
-            AgentChatMessage.AgentOutputMessage(
+            AgentChatMessage.AgentOutputMessage<Any>(
                 outputList = listOf(
                     AgentOutput.Reasoning(
                         id = "reasoning-4",
@@ -378,7 +379,7 @@ private fun mockMessageFlow(): Flow<List<AgentChatMessage>> {
         emitMessages()
 
         append(
-            AgentChatMessage.HumanInputMessage(
+            AgentChatMessage.HumanInputMessage<Any>(
                 text = "Finally, provide a longer summary to test scrolling and final-result collapsing.",
                 createAt = timestamp(minutes = 13),
                 state = HumanInputMessageState.Sent,
@@ -386,7 +387,7 @@ private fun mockMessageFlow(): Flow<List<AgentChatMessage>> {
         )
         emitMessages()
         append(
-            AgentChatMessage.AgentOutputMessage(
+            AgentChatMessage.AgentOutputMessage<Any>(
                 outputList = listOf(
                     AgentOutput.Reasoning(
                         id = "reasoning-5",
@@ -431,7 +432,7 @@ private fun mockMessageFlow(): Flow<List<AgentChatMessage>> {
             val step = index + 1
             val createAt = timestamp(minutes = 16L + index * 2L)
             append(
-                AgentChatMessage.HumanInputMessage(
+                AgentChatMessage.HumanInputMessage<Any>(
                     text = "Continuous conversation round $step: please send another mock response to increase the number of messages.",
                     createAt = createAt,
                     state = HumanInputMessageState.Sending,
@@ -439,7 +440,7 @@ private fun mockMessageFlow(): Flow<List<AgentChatMessage>> {
             )
             emitMessages(1_000L)
             replaceLast(
-                AgentChatMessage.HumanInputMessage(
+                AgentChatMessage.HumanInputMessage<Any>(
                     text = "Continuous conversation round $step: please send another mock response to increase the number of messages.",
                     createAt = createAt,
                     state = HumanInputMessageState.Sent,

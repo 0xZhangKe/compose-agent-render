@@ -35,7 +35,7 @@ private val BottomReachedThreshold = 100.dp
 @Composable
 fun AgentChatList(
     modifier: Modifier,
-    messageList: List<AgentChatMessage>,
+    messageList: List<AgentChatMessage<Any>>,
     listState: LazyListState = rememberLazyListState(),
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {

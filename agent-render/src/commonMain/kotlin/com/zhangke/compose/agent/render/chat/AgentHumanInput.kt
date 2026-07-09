@@ -16,9 +16,9 @@ import com.zhangke.compose.agent.render.model.HumanInputMessageState
 import com.zhangke.compose.agent.render.theme.AgentRenderTheme
 
 @Composable
-fun AgentHumanInput(
+fun <T> AgentHumanInput(
     modifier: Modifier,
-    input: AgentChatMessage.HumanInputMessage,
+    input: AgentChatMessage.HumanInputMessage<T>,
     state: HumanInputMessageState,
 ) {
     val colors = AgentRenderTheme.colorScheme
