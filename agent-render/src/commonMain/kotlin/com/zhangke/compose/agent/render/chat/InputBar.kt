@@ -34,6 +34,7 @@ fun InputBar(
     maxLines: Int = Int.MAX_VALUE,
     processing: Boolean = false,
     onSendClick: (String) -> Unit,
+    onCancelClick: () -> Unit,
 ) {
     Box(
         modifier = modifier.clip(AgentRenderTheme.shape.medium)
@@ -62,7 +63,7 @@ fun InputBar(
             if (processing) {
                 InputBarProcessingIndicator(
                     modifier = Modifier.align(Alignment.End),
-                    onClick = {},
+                    onClick = onCancelClick,
                 )
             } else {
                 Box(
@@ -91,6 +92,7 @@ private fun PreviewInputBar() {
         InputBar(
             modifier = Modifier.fillMaxWidth(),
             onSendClick = {},
+            onCancelClick = {},
         )
     }
 }
