@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,11 +25,19 @@ import com.zhangke.compose.agent.render.model.AgentOutputMessageState
 import com.zhangke.compose.agent.render.model.HumanInputMessageState
 import com.zhangke.compose.agent.render.model.ToolStatus
 import com.zhangke.compose.agent.render.theme.AgentRenderTheme
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlin.time.Instant
 
 @Composable
 fun ChatListScreen() {
-    val messageList = remember { mockMessageList() }
+    var messageList by remember { mutableStateOf(emptyList<AgentChatMessage>()) }
+    val inputBarProcessing = messageList.lastOrNull().isProcessing()
+    LaunchedEffect(Unit) {
+        mockMessageFlow().collect { messageList = it }
+    }
+
     DemoTheme {
         AgentRenderTheme {
             Scaffold(
@@ -48,7 +57,7 @@ fun ChatListScreen() {
                             .fillMaxWidth()
                             .padding(bottom = 24.dp)
                             .align(Alignment.BottomCenter),
-                        processing = true,
+                        processing = inputBarProcessing,
                         onSendClick = {
 
                         },
@@ -59,234 +68,443 @@ fun ChatListScreen() {
     }
 }
 
-private fun mockMessageList(): List<AgentChatMessage> {
-    return listOf(
-        AgentChatMessage.HumanInputMessage(
-            text = "帮我检查一下当前项目里的聊天列表组件，顺便展示几种 agent 输出状态和 Markdown 渲染效果。",
+private fun AgentChatMessage?.isProcessing(): Boolean {
+    return when (this) {
+        is AgentChatMessage.AgentOutputMessage -> state is AgentOutputMessageState.Processing
+        is AgentChatMessage.HumanInputMessage -> state is HumanInputMessageState.Sending
+        null -> false
+    }
+}
+
+private fun mockMessageFlow(): Flow<List<AgentChatMessage>> {
+    return flow {
+        val messages = mutableListOf<AgentChatMessage>()
+
+        suspend fun emitMessages(delayMillis: Long = 700L) {
+            emit(messages.toList())
+            delay(delayMillis)
+        }
+
+        fun append(message: AgentChatMessage) {
+            messages += message
+        }
+
+        fun replaceLast(message: AgentChatMessage) {
+            messages[messages.lastIndex] = message
+        }
+
+        val firstHuman = AgentChatMessage.HumanInputMessage(
+            text = "Please inspect the chat list component in this project and show several agent output states plus Markdown rendering.",
             createAt = timestamp(minutes = 0),
-            state = HumanInputMessageState.Sent,
-        ),
-        AgentChatMessage.AgentOutputMessage(
-            outputList = listOf(
-                AgentOutput.Reasoning(
-                    id = "reasoning-1",
-                    content = "先确认消息模型、输出组件和主题设置，再准备一组能覆盖普通文本、推理内容、工具调用、错误输出和 Markdown 的 mock 数据。",
-                    createAt = timestamp(minutes = 1),
-                ),
-                AgentOutput.ToolCall(
-                    id = "tool-1",
-                    name = "rg",
-                    arguments = "rg -n \"AgentChatList|AgentOutput|AgentAssistantText|AgentToolCall\" agent-render demo",
-                    output = """
-                        agent-render/src/commonMain/kotlin/com/zhangke/compose/agent/render/chat/AgentChatList.kt:18:fun AgentChatList(
-                        agent-render/src/commonMain/kotlin/com/zhangke/compose/agent/render/AgentOutput.kt:25:fun <T> AgentOutput(
-                        agent-render/src/commonMain/kotlin/com/zhangke/compose/agent/render/AgentAssistantText.kt:13:fun <T> AgentAssistantText(
-                        agent-render/src/commonMain/kotlin/com/zhangke/compose/agent/render/AgentToolCall.kt:29:fun <T> AgentToolCall(
-                    """.trimIndent(),
-                    status = ToolStatus.Success,
-                    createAt = timestamp(minutes = 1),
-                ),
-                AgentOutput.AssistantText(
-                    id = "assistant-1",
-                    content = """
-                        已经找到核心渲染链路：
+            state = HumanInputMessageState.Sending,
+        )
+        append(firstHuman)
+        emitMessages(500L)
+        replaceLast(firstHuman.copy(state = HumanInputMessageState.Sent))
+        emitMessages()
 
-                        1. `AgentChatList` 负责排列多轮消息。
-                        2. `AgentOutput` 负责折叠中间过程并展示最终回答。
-                        3. `AgentAssistantText`、`AgentReasoning` 和 `AgentToolCall` 分别处理不同类型输出。
-
-                        下面我会继续补一组更接近真实 agent 过程的示例数据。
-                    """.trimIndent(),
-                    createAt = timestamp(minutes = 2),
-                    completed = true,
-                ),
+        val firstAgentReasoning = AgentOutput.Reasoning<Any>(
+            id = "reasoning-1",
+            content = "First inspect the message model, output components, and theme settings, then prepare mock data covering plain text, reasoning, tool calls, error output, and Markdown.",
+            createAt = timestamp(minutes = 1),
+        )
+        append(
+            AgentChatMessage.AgentOutputMessage(
+                outputList = listOf(firstAgentReasoning),
+                state = AgentOutputMessageState.Processing,
             ),
-            state = AgentOutputMessageState.Completed,
-        ),
-        AgentChatMessage.HumanInputMessage(
-            text = "再模拟一次代码分析过程：包含推理、命令、表格和最终结论。",
+        )
+        emitMessages()
+        replaceLast(
+            AgentChatMessage.AgentOutputMessage(
+                outputList = listOf(
+                    firstAgentReasoning,
+                    AgentOutput.ToolCall(
+                        id = "tool-1",
+                        name = "rg",
+                        arguments = "rg -n \"AgentChatList|AgentOutput|AgentAssistantText|AgentToolCall\" agent-render demo",
+                        output = """
+                            agent-render/src/commonMain/kotlin/com/zhangke/compose/agent/render/chat/AgentChatList.kt:18:fun AgentChatList(
+                            agent-render/src/commonMain/kotlin/com/zhangke/compose/agent/render/AgentOutput.kt:25:fun <T> AgentOutput(
+                            agent-render/src/commonMain/kotlin/com/zhangke/compose/agent/render/AgentAssistantText.kt:13:fun <T> AgentAssistantText(
+                            agent-render/src/commonMain/kotlin/com/zhangke/compose/agent/render/AgentToolCall.kt:29:fun <T> AgentToolCall(
+                        """.trimIndent(),
+                        status = ToolStatus.Success,
+                        createAt = timestamp(minutes = 1),
+                    ),
+                ),
+                state = AgentOutputMessageState.Processing,
+            ),
+        )
+        emitMessages()
+        replaceLast(
+            AgentChatMessage.AgentOutputMessage(
+                outputList = listOf(
+                    firstAgentReasoning,
+                    AgentOutput.ToolCall(
+                        id = "tool-1",
+                        name = "rg",
+                        arguments = "rg -n \"AgentChatList|AgentOutput|AgentAssistantText|AgentToolCall\" agent-render demo",
+                        output = """
+                            agent-render/src/commonMain/kotlin/com/zhangke/compose/agent/render/chat/AgentChatList.kt:18:fun AgentChatList(
+                            agent-render/src/commonMain/kotlin/com/zhangke/compose/agent/render/AgentOutput.kt:25:fun <T> AgentOutput(
+                            agent-render/src/commonMain/kotlin/com/zhangke/compose/agent/render/AgentAssistantText.kt:13:fun <T> AgentAssistantText(
+                            agent-render/src/commonMain/kotlin/com/zhangke/compose/agent/render/AgentToolCall.kt:29:fun <T> AgentToolCall(
+                        """.trimIndent(),
+                        status = ToolStatus.Success,
+                        createAt = timestamp(minutes = 1),
+                    ),
+                    AgentOutput.AssistantText(
+                        id = "assistant-1",
+                        content = """
+                            Found the core rendering path:
+
+                            1. `AgentChatList` lays out multi-turn messages.
+                            2. `AgentOutput` collapses intermediate work and displays the final answer.
+                            3. `AgentAssistantText`, `AgentReasoning`, and `AgentToolCall` render the different output types.
+
+                            Next I will add sample data that looks closer to a real agent run.
+                        """.trimIndent(),
+                        createAt = timestamp(minutes = 2),
+                        completed = true,
+                    ),
+                ),
+                state = AgentOutputMessageState.Completed,
+            ),
+        )
+        emitMessages()
+
+        val secondHuman = AgentChatMessage.HumanInputMessage(
+            text = "Simulate another code analysis pass with reasoning, commands, a table, and a final conclusion.",
             createAt = timestamp(minutes = 3),
             state = HumanInputMessageState.Sent,
-        ),
-        AgentChatMessage.AgentOutputMessage(
-            outputList = listOf(
-                AgentOutput.Reasoning(
-                    id = "reasoning-2",
-                    content = """
-                        这次重点观察两点：
+        )
+        append(secondHuman)
+        emitMessages()
+        replaceLast(secondHuman.copy(state = HumanInputMessageState.Sent))
+        append(
+            AgentChatMessage.AgentOutputMessage(
+                outputList = listOf(
+                    AgentOutput.Reasoning(
+                        id = "reasoning-2",
+                        content = """
+                            This pass focuses on two checks:
 
-                        - 多个输出块之间的间距是否稳定；
-                        - 最终文本较长时，折叠区域和正文是否仍然可读。
-                    """.trimIndent(),
-                    createAt = timestamp(minutes = 4),
+                            - whether spacing between output blocks stays stable;
+                            - whether the collapsed area and body remain readable when the final text is long.
+                        """.trimIndent(),
+                        createAt = timestamp(minutes = 4),
+                    ),
+                    AgentOutput.ToolCall(
+                        id = "tool-2",
+                        name = "sed",
+                        arguments = "sed -n '1,140p' agent-render/src/commonMain/kotlin/com/zhangke/compose/agent/render/AgentOutput.kt",
+                        output = """
+                            @Composable
+                            fun <T> AgentOutput(
+                                modifier: Modifier = Modifier,
+                                outputList: List<AgentOutput<T>>,
+                                completed: Boolean,
+                                custom: @Composable ((data: T) -> Unit)? = null,
+                            ) {
+                                // Renders reasoning, tool calls, custom blocks and final text.
+                            }
+                        """.trimIndent(),
+                        status = ToolStatus.Success,
+                        createAt = timestamp(minutes = 4),
+                    ),
                 ),
-                AgentOutput.ToolCall(
-                    id = "tool-2",
-                    name = "sed",
-                    arguments = "sed -n '1,140p' agent-render/src/commonMain/kotlin/com/zhangke/compose/agent/render/AgentOutput.kt",
-                    output = """
-                        @Composable
-                        fun <T> AgentOutput(
-                            modifier: Modifier = Modifier,
-                            outputList: List<AgentOutput<T>>,
-                            completed: Boolean,
-                            custom: @Composable ((data: T) -> Unit)? = null,
-                        ) {
-                            // Renders reasoning, tool calls, custom blocks and final text.
-                        }
-                    """.trimIndent(),
-                    status = ToolStatus.Success,
-                    createAt = timestamp(minutes = 4),
-                ),
-                AgentOutput.AssistantText(
-                    id = "assistant-2",
-                    content = """
-                        ## 组件检查结果
-
-                        | 区域 | 覆盖情况 | 备注 |
-                        | --- | --- | --- |
-                        | Human input | 已覆盖 | 右侧气泡布局 |
-                        | Reasoning | 已覆盖 | 使用浅色背景区分 |
-                        | Tool call | 已覆盖 | 支持折叠和日志滚动 |
-                        | Final result | 已覆盖 | 通过 `completed` 文本识别 |
-
-                        建议在 demo 中保留 **成功、运行中、失败、长文本** 四类样例，这样调整主题、字号或间距时更容易发现视觉回归。
-                    """.trimIndent(),
-                    createAt = timestamp(minutes = 5),
-                    completed = true,
-                ),
+                state = AgentOutputMessageState.Processing,
             ),
-            state = AgentOutputMessageState.Completed,
-        ),
-        AgentChatMessage.HumanInputMessage(
-            text = "加一个工具还在运行中的状态，用来观察 loading 场景。",
-            createAt = timestamp(minutes = 6),
-            state = HumanInputMessageState.Sent,
-        ),
-        AgentChatMessage.AgentOutputMessage(
-            outputList = listOf(
-                AgentOutput.ToolCall(
-                    id = "tool-3",
-                    name = "gradle",
-                    arguments = "./gradlew :demo:desktopRun",
-                    output = """
-                        > Configure project :demo
-                        > Task :agent-render:compileKotlinMetadata UP-TO-DATE
-                        > Task :demo:compileKotlinDesktop
+        )
+        emitMessages()
+        replaceLast(
+            AgentChatMessage.AgentOutputMessage(
+                outputList = listOf(
+                    AgentOutput.Reasoning(
+                        id = "reasoning-2",
+                        content = """
+                            This pass focuses on two checks:
 
-                        Build is still running...
-                    """.trimIndent(),
-                    status = ToolStatus.Running,
-                    createAt = timestamp(minutes = 7),
+                            - whether spacing between output blocks stays stable;
+                            - whether the collapsed area and body remain readable when the final text is long.
+                        """.trimIndent(),
+                        createAt = timestamp(minutes = 4),
+                    ),
+                    AgentOutput.ToolCall(
+                        id = "tool-2",
+                        name = "sed",
+                        arguments = "sed -n '1,140p' agent-render/src/commonMain/kotlin/com/zhangke/compose/agent/render/AgentOutput.kt",
+                        output = """
+                            @Composable
+                            fun <T> AgentOutput(
+                                modifier: Modifier = Modifier,
+                                outputList: List<AgentOutput<T>>,
+                                completed: Boolean,
+                                custom: @Composable ((data: T) -> Unit)? = null,
+                            ) {
+                                // Renders reasoning, tool calls, custom blocks and final text.
+                            }
+                        """.trimIndent(),
+                        status = ToolStatus.Success,
+                        createAt = timestamp(minutes = 4),
+                    ),
+                    AgentOutput.AssistantText(
+                        id = "assistant-2",
+                        content = """
+                            ## Component Check Results
+
+                            | Area | Coverage | Notes |
+                            | --- | --- | --- |
+                            | Human input | Covered | right-aligned bubble layout |
+                            | Reasoning | Covered | separated with a light background |
+                            | Tool call | Covered | supports collapsing and scrollable logs |
+                            | Final result | Covered | identified by completed assistant text |
+
+                            Keep **success, running, failure, and long text** examples in the demo so visual regressions are easier to spot when adjusting theme, type, or spacing.
+                        """.trimIndent(),
+                        createAt = timestamp(minutes = 5),
+                        completed = true,
+                    ),
                 ),
-                AgentOutput.AssistantText(
-                    id = "assistant-3",
-                    content = "当前 demo 进程仍在启动中，这条文本模拟 streaming 过程中的非最终回答，因此 `completed = false`。",
-                    createAt = timestamp(minutes = 7),
-                    completed = false,
-                ),
+                state = AgentOutputMessageState.Completed,
             ),
-            state = AgentOutputMessageState.Processing,
-        ),
-        AgentChatMessage.HumanInputMessage(
-            text = "这条消息还在发送中，用来检查用户消息 Sending 状态。",
-            createAt = timestamp(minutes = 8),
-            state = HumanInputMessageState.Sending,
-        ),
-        AgentChatMessage.HumanInputMessage(
-            text = "这条消息发送失败，应该在气泡底部显示错误提示。",
-            createAt = timestamp(minutes = 9),
-            state = HumanInputMessageState.Error(IllegalStateException("Network unavailable")),
-        ),
-        AgentChatMessage.HumanInputMessage(
-            text = "再补一个失败工具调用，并让最终回答包含代码块。",
-            createAt = timestamp(minutes = 10),
-            state = HumanInputMessageState.Sent,
-        ),
-        AgentChatMessage.AgentOutputMessage(
-            outputList = listOf(
-                AgentOutput.Reasoning(
-                    id = "reasoning-4",
-                    content = "需要展示错误日志的排版，同时验证最终 Markdown 代码块不会撑乱列表宽度。",
-                    createAt = timestamp(minutes = 11),
-                ),
-                AgentOutput.ToolCall(
-                    id = "tool-4",
-                    name = "cat",
-                    arguments = "cat missing-file.txt",
-                    output = "cat: missing-file.txt: No such file or directory",
-                    status = ToolStatus.Error,
-                    createAt = timestamp(minutes = 11),
-                ),
-                AgentOutput.AssistantText(
-                    id = "assistant-4",
-                    content = """
-                        ### 失败状态样例
+        )
+        emitMessages()
 
-                        工具调用返回了文件不存在错误，UI 应当清晰展示失败命令和 stderr 内容。
-
-                        ```kotlin
-                        val message = AgentOutput.ToolCall(
-                            id = "tool-4",
-                            name = "cat",
-                            arguments = "cat missing-file.txt",
-                            status = ToolStatus.Error,
-                        )
-                        ```
-
-                        这类输出通常不代表整个任务失败，最终回答仍然可以继续给出替代方案或下一步建议。
-                    """.trimIndent(),
-                    createAt = timestamp(minutes = 12),
-                    completed = true,
-                ),
+        append(
+            AgentChatMessage.HumanInputMessage(
+                text = "Add a running tool state so the loading scenario can be inspected.",
+                createAt = timestamp(minutes = 6),
+                state = HumanInputMessageState.Sent,
             ),
-            state = AgentOutputMessageState.Error(IllegalStateException("Tool exited with code 1")),
-        ),
-        AgentChatMessage.HumanInputMessage(
-            text = "最后给一个完整总结，内容长一点，用来测试滚动和最终结果折叠。",
-            createAt = timestamp(minutes = 13),
-            state = HumanInputMessageState.Sent,
-        ),
-        AgentChatMessage.AgentOutputMessage(
-            outputList = listOf(
-                AgentOutput.Reasoning(
-                    id = "reasoning-5",
-                    content = "总结需要覆盖当前 demo 的视觉检查点，并保持段落、列表、行内代码的混排。",
-                    createAt = timestamp(minutes = 14),
-                ),
-                AgentOutput.ToolCall(
-                    id = "tool-5",
-                    name = "git",
-                    arguments = "git status --short",
-                    output = """
-                        M agent-render/src/commonMain/kotlin/com/zhangke/compose/agent/render/theme/AgentTypography.kt
-                        M demo/src/commonMain/kotlin/com/zhangke/compose/chat/demo/ChatListScreen.kt
-                    """.trimIndent(),
-                    status = ToolStatus.Success,
-                    createAt = timestamp(minutes = 14),
-                ),
-                AgentOutput.AssistantText(
-                    id = "assistant-5",
-                    content = """
-                        ## 最终总结
+        )
+        emitMessages()
+        append(
+            AgentChatMessage.AgentOutputMessage(
+                outputList = listOf(
+                    AgentOutput.ToolCall(
+                        id = "tool-3",
+                        name = "gradle",
+                        arguments = "./gradlew :demo:desktopRun",
+                        output = """
+                            > Configure project :demo
+                            > Task :agent-render:compileKotlinMetadata UP-TO-DATE
+                            > Task :demo:compileKotlinDesktop
 
-                        我已经把 demo 数据扩展成多轮对话，当前可以覆盖这些展示场景：
-
-                        - 普通用户输入和 agent 输出交替排列；
-                        - reasoning 区块的 Markdown 渲染；
-                        - tool call 的成功、运行中和失败状态；
-                        - 最终回答中的标题、列表、表格、行内代码和代码块；
-                        - 较长内容下的滚动、间距和折叠表现。
-
-                        这组数据适合用来检查主题中的字体、颜色和 shape 调整是否影响聊天列表的整体稳定性。后续如果要验证 streaming，可以把最后一条 `AssistantText` 的 `completed` 在收尾前设为 `false`，收到结束事件后再切到 `true`。
-                    """.trimIndent(),
-                    createAt = timestamp(minutes = 15),
-                    completed = true,
+                            Build is still running...
+                        """.trimIndent(),
+                        status = ToolStatus.Running,
+                        createAt = timestamp(minutes = 7),
+                    ),
+                    AgentOutput.AssistantText(
+                        id = "assistant-3",
+                        content = "The demo process is still starting. This text simulates a non-final streaming response, so `completed = false`.",
+                        createAt = timestamp(minutes = 7),
+                        completed = false,
+                    ),
                 ),
+                state = AgentOutputMessageState.Processing,
             ),
-            state = AgentOutputMessageState.Completed,
-        ),
-    )
+        )
+        emitMessages(1200L)
+
+        append(
+            AgentChatMessage.HumanInputMessage(
+                text = "This message is still sending, which checks the user-message Sending state.",
+                createAt = timestamp(minutes = 8),
+                state = HumanInputMessageState.Sending,
+            ),
+        )
+        emitMessages()
+        replaceLast(
+            AgentChatMessage.HumanInputMessage(
+                text = "This message failed to send, so an error should appear at the bottom of the bubble.",
+                createAt = timestamp(minutes = 9),
+                state = HumanInputMessageState.Error(IllegalStateException("Network unavailable")),
+            ),
+        )
+        emitMessages()
+
+        append(
+            AgentChatMessage.HumanInputMessage(
+                text = "Add a failed tool call and include a code block in the final answer.",
+                createAt = timestamp(minutes = 10),
+                state = HumanInputMessageState.Sent,
+            ),
+        )
+        emitMessages()
+        append(
+            AgentChatMessage.AgentOutputMessage(
+                outputList = listOf(
+                    AgentOutput.Reasoning(
+                        id = "reasoning-4",
+                        content = "Show error log formatting and verify that the final Markdown code block does not break the list width.",
+                        createAt = timestamp(minutes = 11),
+                    ),
+                    AgentOutput.ToolCall(
+                        id = "tool-4",
+                        name = "cat",
+                        arguments = "cat missing-file.txt",
+                        output = "cat: missing-file.txt: No such file or directory",
+                        status = ToolStatus.Error,
+                        createAt = timestamp(minutes = 11),
+                    ),
+                    AgentOutput.AssistantText(
+                        id = "assistant-4",
+                        content = """
+                            ### Failure State Example
+
+                            The tool call returned a missing-file error. The UI should clearly show the failed command and stderr content.
+
+                            ```kotlin
+                            val message = AgentOutput.ToolCall(
+                                id = "tool-4",
+                                name = "cat",
+                                arguments = "cat missing-file.txt",
+                                status = ToolStatus.Error,
+                            )
+                            ```
+
+                            This kind of output usually does not mean the whole task failed. The final answer can still provide alternatives or next steps.
+                        """.trimIndent(),
+                        createAt = timestamp(minutes = 12),
+                        completed = true,
+                    ),
+                ),
+                state = AgentOutputMessageState.Error(IllegalStateException("Tool exited with code 1")),
+            ),
+        )
+        emitMessages()
+
+        append(
+            AgentChatMessage.HumanInputMessage(
+                text = "Finally, provide a longer summary to test scrolling and final-result collapsing.",
+                createAt = timestamp(minutes = 13),
+                state = HumanInputMessageState.Sent,
+            ),
+        )
+        emitMessages()
+        append(
+            AgentChatMessage.AgentOutputMessage(
+                outputList = listOf(
+                    AgentOutput.Reasoning(
+                        id = "reasoning-5",
+                        content = "The summary should cover the demo visual checkpoints while mixing paragraphs, lists, and inline code.",
+                        createAt = timestamp(minutes = 14),
+                    ),
+                    AgentOutput.ToolCall(
+                        id = "tool-5",
+                        name = "git",
+                        arguments = "git status --short",
+                        output = """
+                            M agent-render/src/commonMain/kotlin/com/zhangke/compose/agent/render/theme/AgentTypography.kt
+                            M demo/src/commonMain/kotlin/com/zhangke/compose/chat/demo/ChatListScreen.kt
+                        """.trimIndent(),
+                        status = ToolStatus.Success,
+                        createAt = timestamp(minutes = 14),
+                    ),
+                    AgentOutput.AssistantText(
+                        id = "assistant-5",
+                        content = """
+                            ## Final Summary
+
+                            The demo data now spans multiple turns and covers these display scenarios:
+
+                            - alternating user input and agent output;
+                            - Markdown rendering inside reasoning blocks;
+                            - success, running, and failure states for tool calls;
+                            - headings, lists, tables, inline code, and code blocks in final answers;
+                            - scrolling, spacing, and collapse behavior with longer content.
+
+                            This data set is useful for checking whether typography, color, or shape changes affect the overall stability of the chat list. To verify streaming later, keep the last `AssistantText.completed` as `false` until the end event arrives, then switch it to `true`.
+                        """.trimIndent(),
+                        createAt = timestamp(minutes = 15),
+                        completed = true,
+                    ),
+                ),
+                state = AgentOutputMessageState.Completed,
+            ),
+        )
+
+        repeat(10) { index ->
+            val step = index + 1
+            val createAt = timestamp(minutes = 16L + index * 2L)
+            append(
+                AgentChatMessage.HumanInputMessage(
+                    text = "Continuous conversation round $step: please send another mock response to increase the number of messages.",
+                    createAt = createAt,
+                    state = HumanInputMessageState.Sending,
+                ),
+            )
+            emitMessages(1_000L)
+            replaceLast(
+                AgentChatMessage.HumanInputMessage(
+                    text = "Continuous conversation round $step: please send another mock response to increase the number of messages.",
+                    createAt = createAt,
+                    state = HumanInputMessageState.Sent,
+                ),
+            )
+            emitMessages(1_000L)
+
+            val reasoning = AgentOutput.Reasoning<Any>(
+                id = "reasoning-long-$step",
+                content = "Mock request round $step/10: read the latest user input and prepare a new agent message.",
+                createAt = createAt,
+            )
+            val runningTool = AgentOutput.ToolCall<Any>(
+                id = "tool-long-$step",
+                name = "simulate_step",
+                arguments = "simulate_step --round=$step --total=10",
+                output = """
+                    round=$step
+                    status=running
+                    message_count=${messages.size + 1}
+                """.trimIndent(),
+                status = ToolStatus.Running,
+                createAt = createAt,
+            )
+            append(
+                AgentChatMessage.AgentOutputMessage(
+                    outputList = listOf(reasoning, runningTool),
+                    state = AgentOutputMessageState.Processing,
+                ),
+            )
+            emitMessages(2_000L)
+            replaceLast(
+                AgentChatMessage.AgentOutputMessage(
+                    outputList = listOf(
+                        reasoning,
+                        runningTool.copy(
+                            output = """
+                                round=$step
+                                status=success
+                                message_count=${messages.size}
+                                latency=${180 + step * 17}ms
+                            """.trimIndent(),
+                            status = ToolStatus.Success,
+                        ),
+                        AgentOutput.AssistantText(
+                            id = "assistant-long-$step",
+                            content = """
+                                Round $step returned a new message.
+
+                                - This is an independent agent output message;
+                                - the Flow will keep appending more user and agent messages;
+                                - this helps verify list scrolling and bottom detection while the message count keeps increasing.
+                            """.trimIndent(),
+                            createAt = createAt,
+                            completed = true,
+                        ),
+                    ),
+                    state = AgentOutputMessageState.Completed,
+                ),
+            )
+            emitMessages(2_000L)
+        }
+
+        emit(messages.toList())
+    }
 }
 
 private fun timestamp(minutes: Long): Instant {

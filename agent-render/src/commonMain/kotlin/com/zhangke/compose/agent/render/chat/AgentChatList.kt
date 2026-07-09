@@ -1,6 +1,5 @@
 package com.zhangke.compose.agent.render.chat
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
@@ -21,15 +20,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.zhangke.compose.agent.render.AgentOutput
 import com.zhangke.compose.agent.render.model.AgentChatMessage
 import com.zhangke.compose.agent.render.model.AgentOutputMessageState
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
+import kotlin.time.Duration.Companion.milliseconds
 
 private val BottomReachedThreshold = 100.dp
 
+@OptIn(FlowPreview::class)
 @Composable
 fun AgentChatList(
     modifier: Modifier,
@@ -43,14 +45,24 @@ fun AgentChatList(
     var isAtBottom by remember { mutableStateOf(true) }
 
     LaunchedEffect(listState, bottomContentPaddingPx, bottomThresholdPx) {
+        var lastItemHeight = 0
         snapshotFlow { listState.layoutInfo }
+            .debounce(100.milliseconds)
             .collect { layoutInfo ->
+                println("layoutInfo: $layoutInfo")
                 val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()
                 if (lastVisibleItem != null) {
-                    val realBottom = layoutInfo.viewportEndOffset - bottomContentPaddingPx
-                    val lastItemBottom = lastVisibleItem.offset + lastVisibleItem.size
-                    isAtBottom = lastItemBottom - realBottom < bottomThresholdPx
+                    if (lastItemHeight != lastVisibleItem.size && isAtBottom) {
+                        listState.scrollToBottom()
+                        isAtBottom = true
+                    } else {
+                        val realBottom = layoutInfo.viewportEndOffset - bottomContentPaddingPx
+                        val lastItemBottom = lastVisibleItem.offset + lastVisibleItem.size
+                        isAtBottom = lastItemBottom - realBottom < bottomThresholdPx
+                    }
                 }
+                lastItemHeight = lastVisibleItem?.size ?: 0
+                println("is at bottom: $isAtBottom")
             }
     }
 
@@ -63,7 +75,7 @@ fun AgentChatList(
             when (message) {
                 is AgentChatMessage.AgentOutputMessage -> {
                     AgentOutput(
-                        modifier = Modifier.background(Color.Green).fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                         outputList = message.outputList,
                         completed = message.state is AgentOutputMessageState.Completed || message.state is AgentOutputMessageState.Error,
                     )
@@ -91,4 +103,10 @@ fun AgentChatList(
             }
         }
     }
+}
+
+private suspend fun LazyListState.scrollToBottom() {
+    val lastIndex = layoutInfo.totalItemsCount - 1
+    if (lastIndex < 0) return
+    scrollToItem(index = lastIndex, scrollOffset = Int.MAX_VALUE)
 }
