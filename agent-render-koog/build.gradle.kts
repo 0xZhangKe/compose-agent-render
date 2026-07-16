@@ -21,6 +21,10 @@ kotlin {
             implementation(libs.compose.ui.tooling.preview)
             implementation(libs.koog.agents)
         }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.core)
+        }
     }
 }
 

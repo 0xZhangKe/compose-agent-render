@@ -37,6 +37,9 @@ private class StreamFrameReducer<T>(
     private val reasoningById = mutableMapOf<String, String>()
     private val toolCallsById = mutableMapOf<String, ToolCallState<T>>()
     private val createAtById = mutableMapOf<String, Instant>()
+    private val reasoningIdsByIndex = mutableMapOf<Int, String>()
+    private val toolCallIdsByIndex = mutableMapOf<Int, String>()
+    private var responseIndex = 0
 
     val outputs: List<AgentOutput<T>>
         get() = outputsById.values.toList()
@@ -51,7 +54,12 @@ private class StreamFrameReducer<T>(
                     is StreamFrame.ReasoningComplete -> reduceReasoningComplete(frame.frame)
                     is StreamFrame.ToolCallDelta -> reduceToolCallDelta(frame.frame)
                     is StreamFrame.ToolCallComplete -> reduceToolCallComplete(frame.frame)
-                    is StreamFrame.End -> false
+                    is StreamFrame.End -> {
+                        responseIndex++
+                        reasoningIdsByIndex.clear()
+                        toolCallIdsByIndex.clear()
+                        false
+                    }
                 }
             }
 
@@ -60,69 +68,66 @@ private class StreamFrameReducer<T>(
                 if (customOutput == null) {
                     false
                 } else {
-                    outputsById[customOutput.id] = customOutput
-                    true
+                    putOutput(customOutput)
                 }
             }
         }
     }
 
     private fun reduceTextDelta(frame: StreamFrame.TextDelta): Boolean {
-        val id = frame.assistantId
+        val id = frame.assistantId(responseIndex)
         val content = textById.orEmpty(id) + frame.text
         textById[id] = content
-        outputsById[id] = AgentOutput.AssistantText(
+        return putOutput(AgentOutput.AssistantText(
             id = id,
             content = content,
             createAt = createAtById.getOrCreate(id),
             completed = false,
-        )
-        return true
+        ))
     }
 
     private fun reduceTextComplete(frame: StreamFrame.TextComplete): Boolean {
-        val id = frame.assistantId
-        outputsById[id] = AgentOutput.AssistantText(
+        val id = frame.assistantId(responseIndex)
+        val changed = putOutput(AgentOutput.AssistantText(
             id = id,
             content = frame.text,
             createAt = createAtById.getOrCreate(id),
             completed = true,
-        )
+        ))
         textById.remove(id)
         createAtById.remove(id)
-        return true
+        return changed
     }
 
     private fun reduceReasoningDelta(frame: StreamFrame.ReasoningDelta): Boolean {
         val delta = frame.summary ?: frame.text ?: return false
-        val id = frame.reasoningId
+        val id = frame.reasoningId(responseIndex)
         val content = reasoningById.orEmpty(id) + delta
         reasoningById[id] = content
-        outputsById[id] = AgentOutput.Reasoning(
+        return putOutput(AgentOutput.Reasoning(
             id = id,
             content = content,
             createAt = createAtById.getOrCreate(id),
-        )
-        return true
+        ))
     }
 
     private fun reduceReasoningComplete(frame: StreamFrame.ReasoningComplete): Boolean {
-        val id = frame.reasoningId
+        val id = frame.reasoningId(responseIndex)
         val content = frame.summary?.joinToString(separator = "")
             ?: frame.content.joinToString(separator = "")
         reasoningById[id] = content
-        outputsById[id] = AgentOutput.Reasoning(
+        val changed = putOutput(AgentOutput.Reasoning(
             id = id,
             content = content,
             createAt = createAtById.getOrCreate(id),
-        )
+        ))
         reasoningById.remove(id)
         createAtById.remove(id)
-        return true
+        return changed
     }
 
     private fun reduceToolCallDelta(frame: StreamFrame.ToolCallDelta): Boolean {
-        val id = frame.toolCallId
+        val id = frame.toolCallId(responseIndex)
         val current = toolCallsById[id] ?: ToolCallState<T>(
             id = id,
             createAt = createAtById.getOrCreate(id),
@@ -133,12 +138,11 @@ private class StreamFrameReducer<T>(
             status = ToolStatus.Running,
         )
         toolCallsById[id] = next
-        outputsById[id] = next.toAgentOutput()
-        return true
+        return putOutput(next.toAgentOutput())
     }
 
     private fun reduceToolCallComplete(frame: StreamFrame.ToolCallComplete): Boolean {
-        val id = frame.toolCallId
+        val id = frame.toolCallId(responseIndex)
         val current = toolCallsById[id] ?: ToolCallState<T>(
             id = id,
             createAt = createAtById.getOrCreate(id),
@@ -149,9 +153,41 @@ private class StreamFrameReducer<T>(
             status = ToolStatus.Success,
         )
         toolCallsById[id] = next
-        outputsById[id] = next.toAgentOutput()
+        val changed = putOutput(next.toAgentOutput())
         toolCallsById.remove(id)
         createAtById.remove(id)
+        return changed
+    }
+
+    private fun StreamFrame.ReasoningDelta.reasoningId(responseIndex: Int): String =
+        resolveFrameId("reasoning", responseIndex, index, id, reasoningIdsByIndex)
+
+    private fun StreamFrame.ReasoningComplete.reasoningId(responseIndex: Int): String =
+        resolveFrameId("reasoning", responseIndex, index, id, reasoningIdsByIndex)
+
+    private fun StreamFrame.ToolCallDelta.toolCallId(responseIndex: Int): String =
+        resolveFrameId("tool", responseIndex, index, id, toolCallIdsByIndex)
+
+    private fun StreamFrame.ToolCallComplete.toolCallId(responseIndex: Int): String =
+        resolveFrameId("tool", responseIndex, index, id, toolCallIdsByIndex)
+
+    private fun resolveFrameId(
+        type: String,
+        responseIndex: Int,
+        frameIndex: Int?,
+        frameId: String?,
+        idsByIndex: MutableMap<Int, String>,
+    ): String {
+        if (frameIndex == null) return "$type-$responseIndex-${frameId ?: "unknown"}"
+        val existing = idsByIndex[frameIndex]
+        if (existing != null) return existing
+        return "$type-$responseIndex-${frameId ?: frameIndex}"
+            .also { idsByIndex[frameIndex] = it }
+    }
+
+    private fun putOutput(output: AgentOutput<T>): Boolean {
+        if (outputsById[output.id] == output) return false
+        outputsById[output.id] = output
         return true
     }
 }
@@ -180,23 +216,11 @@ private data class ToolCallState<T>(
     }
 }
 
-private val StreamFrame.TextDelta.assistantId: String
-    get() = "assistant-${index ?: 0}"
+private fun StreamFrame.TextDelta.assistantId(responseIndex: Int): String =
+    "assistant-$responseIndex-${index ?: 0}"
 
-private val StreamFrame.TextComplete.assistantId: String
-    get() = "assistant-${index ?: 0}"
-
-private val StreamFrame.ReasoningDelta.reasoningId: String
-    get() = "reasoning-${index ?: 0}"
-
-private val StreamFrame.ReasoningComplete.reasoningId: String
-    get() = "reasoning-${index ?: 0}"
-
-private val StreamFrame.ToolCallDelta.toolCallId: String
-    get() = "tool-${index ?: 0}"
-
-private val StreamFrame.ToolCallComplete.toolCallId: String
-    get() = "tool-${index ?: 0}"
+private fun StreamFrame.TextComplete.assistantId(responseIndex: Int): String =
+    "assistant-$responseIndex-${index ?: 0}"
 
 private fun Map<String, String>.orEmpty(key: String): String {
     return this[key].orEmpty()
@@ -204,9 +228,10 @@ private fun Map<String, String>.orEmpty(key: String): String {
 
 private fun String.mergeDelta(delta: String?): String {
     if (delta.isNullOrEmpty()) return this
-    return if (delta.startsWith(this)) {
-        delta
-    } else {
-        this + delta
+    return when {
+        delta == this -> this
+        delta.startsWith(this) -> delta
+        endsWith(delta) -> this
+        else -> this + delta
     }
 }
