@@ -187,16 +187,16 @@ private val StreamFrame.TextComplete.assistantId: String
     get() = "assistant-${index ?: 0}"
 
 private val StreamFrame.ReasoningDelta.reasoningId: String
-    get() = "reasoning-${id ?: index ?: 0}"
+    get() = "reasoning-${index ?: 0}"
 
 private val StreamFrame.ReasoningComplete.reasoningId: String
-    get() = "reasoning-${id ?: index ?: 0}"
+    get() = "reasoning-${index ?: 0}"
 
 private val StreamFrame.ToolCallDelta.toolCallId: String
-    get() = "tool-${id ?: index ?: 0}"
+    get() = "tool-${index ?: 0}"
 
 private val StreamFrame.ToolCallComplete.toolCallId: String
-    get() = "tool-${id ?: index ?: 0}"
+    get() = "tool-${index ?: 0}"
 
 private fun Map<String, String>.orEmpty(key: String): String {
     return this[key].orEmpty()

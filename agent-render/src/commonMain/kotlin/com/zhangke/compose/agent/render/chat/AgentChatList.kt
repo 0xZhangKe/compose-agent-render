@@ -38,6 +38,7 @@ fun <T> AgentChatList(
     messageList: List<AgentChatMessage<T>>,
     listState: LazyListState = rememberLazyListState(),
     contentPadding: PaddingValues = PaddingValues(0.dp),
+    showScrollBar: Boolean = true,
 ) {
     val density = LocalDensity.current
     val bottomThresholdPx = with(density) { BottomReachedThreshold.toPx() }
