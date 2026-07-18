@@ -11,6 +11,41 @@ import kotlin.test.assertEquals
 class StreamFrameAdapterTest {
 
     @Test
+    fun mergesIncrementalTextDeltasAndIgnoresRepeatedFrames() = runBlocking {
+        val frames = listOf(
+            StreamFrame.TextDelta("Hello ", 0),
+            StreamFrame.TextDelta("world", 0),
+            StreamFrame.TextDelta("world", 0),
+            StreamFrame.TextComplete("Hello world", 0),
+        ).map { AgentAdapterFrame.LlmFrame<Nothing>(it) }
+
+        val snapshots = frames.asFlow().reduceToAgentOutput().toList()
+
+        assertEquals(3, snapshots.size)
+        assertEquals(
+            listOf("Hello ", "Hello world", "Hello world"),
+            snapshots.map { (it.single() as AgentOutput.AssistantText).content },
+        )
+    }
+
+    @Test
+    fun mergesCumulativeTextDeltas() = runBlocking {
+        val frames = listOf(
+            StreamFrame.TextDelta("Hello ", 0),
+            StreamFrame.TextDelta("Hello world", 0),
+            StreamFrame.TextDelta("Hello world", 0),
+        ).map { AgentAdapterFrame.LlmFrame<Nothing>(it) }
+
+        val snapshots = frames.asFlow().reduceToAgentOutput().toList()
+
+        assertEquals(2, snapshots.size)
+        assertEquals(
+            listOf("Hello ", "Hello world"),
+            snapshots.map { (it.single() as AgentOutput.AssistantText).content },
+        )
+    }
+
+    @Test
     fun mergesToolCallDeltasAndDoesNotEmitDuplicateSnapshots() = runBlocking {
         val frames = listOf(
             StreamFrame.ToolCallDelta("call-1", "search", "{\"q\"", 0),

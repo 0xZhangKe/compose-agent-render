@@ -76,14 +76,16 @@ private class StreamFrameReducer<T>(
 
     private fun reduceTextDelta(frame: StreamFrame.TextDelta): Boolean {
         val id = frame.assistantId(responseIndex)
-        val content = textById.orEmpty(id) + frame.text
+        val content = textById.orEmpty(id).mergeDelta(frame.text)
         textById[id] = content
-        return putOutput(AgentOutput.AssistantText(
-            id = id,
-            content = content,
-            createAt = createAtById.getOrCreate(id),
-            completed = false,
-        ))
+        return putOutput(
+            AgentOutput.AssistantText(
+                id = id,
+                content = content,
+                createAt = createAtById.getOrCreate(id),
+                completed = false,
+            ),
+        )
     }
 
     private fun reduceTextComplete(frame: StreamFrame.TextComplete): Boolean {
