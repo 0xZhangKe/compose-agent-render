@@ -39,6 +39,7 @@ fun <T> AgentChatList(
     listState: LazyListState = rememberLazyListState(),
     contentPadding: PaddingValues = PaddingValues(0.dp),
     showScrollBar: Boolean = true,
+    custom: @Composable ((data: T) -> Unit)? = null,
 ) {
     val density = LocalDensity.current
     val bottomThresholdPx = with(density) { BottomReachedThreshold.toPx() }
@@ -76,6 +77,7 @@ fun <T> AgentChatList(
                     AgentOutput(
                         modifier = Modifier.fillMaxWidth(),
                         outputList = message.outputList,
+                        custom = custom,
                         completed = message.state is AgentOutputMessageState.Completed || message.state is AgentOutputMessageState.Error,
                     )
                 }
