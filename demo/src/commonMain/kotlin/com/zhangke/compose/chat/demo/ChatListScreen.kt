@@ -50,11 +50,16 @@ fun ChatListScreen() {
                     AgentChatList(
                         modifier = Modifier.fillMaxSize(),
                         messageList = messageList,
-                        contentPadding = PaddingValues(top = 24.dp, bottom = inputBarHeight + 16.dp),
+                        contentPadding = PaddingValues(
+                            top = 24.dp,
+                            bottom = inputBarHeight + 16.dp
+                        ),
                     )
                     InputBar(
                         modifier = Modifier
-                            .onSizeChanged { size -> inputBarHeight = with(density) { size.height.toDp() } }
+                            .onSizeChanged { size ->
+                                inputBarHeight = with(density) { size.height.toDp() }
+                            }
                             .fillMaxWidth()
                             .padding(bottom = 24.dp)
                             .align(Alignment.BottomCenter),
@@ -62,6 +67,7 @@ fun ChatListScreen() {
                         onSendClick = {
 
                         },
+                        onCancelClick = {},
                     )
                 }
             }
