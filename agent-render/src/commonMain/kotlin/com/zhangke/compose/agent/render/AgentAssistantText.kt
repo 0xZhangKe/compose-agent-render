@@ -12,9 +12,9 @@ import com.zhangke.compose.agent.render.model.AgentOutput
 import com.zhangke.compose.agent.render.theme.AgentRenderTheme
 
 @Composable
-fun <T> AgentAssistantText(
+fun AgentAssistantText(
     modifier: Modifier = Modifier,
-    agentToolCall: AgentOutput.AssistantText<T>,
+    agentToolCall: AgentOutput.AssistantText,
 ) {
     val streamingMarkdownState = rememberStreamingMarkdownState()
     LaunchedEffect(agentToolCall) {

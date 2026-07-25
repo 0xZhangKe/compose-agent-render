@@ -19,6 +19,10 @@ kotlin {
             implementation(libs.compose.foundation)
             implementation(libs.compose.ui.tooling.preview)
             implementation(libs.compose.markdown)
+            api(libs.kotlinx.coroutines.core)
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
         }
     }
 }

@@ -27,19 +27,19 @@ import com.zhangke.compose.agent.render.theme.AgentRenderTheme
 import com.zhangke.compose.agent.render.utils.noRippleClick
 
 @Composable
-fun <T> AgentOutput(
+fun AgentOutput(
     modifier: Modifier = Modifier,
-    outputList: List<AgentOutput<T>>,
+    outputList: List<AgentOutput>,
     completed: Boolean,
-    custom: @Composable ((data: T) -> Unit)? = null,
+    custom: @Composable ((data: AgentOutput) -> Unit)? = null,
 ) {
     val icons = AgentRenderTheme.iconsProvider
     Box(modifier = modifier) {
         if (outputList.isEmpty()) return@Box
         Column(modifier = Modifier.fillMaxWidth()) {
             var expanded by rememberSaveable { mutableStateOf(true) }
-            val finalResultOutput: AgentOutput.AssistantText<T>? by remember(outputList, completed) {
-                val output = outputList.lastOrNull { it is AgentOutput.AssistantText && it.completed }?.let { it as? AgentOutput.AssistantText<T> }
+            val finalResultOutput: AgentOutput.AssistantText? by remember(outputList, completed) {
+                val output = outputList.lastOrNull { it is AgentOutput.AssistantText && it.completed }?.let { it as? AgentOutput.AssistantText }
                 mutableStateOf(output)
             }
             val collapsedOutputList by remember(finalResultOutput, outputList) {
@@ -103,8 +103,8 @@ fun <T> AgentOutput(
                                 )
                             }
 
-                            is AgentOutput.Custom -> {
-                                custom?.invoke(output.data)
+                            else -> {
+                                custom?.invoke(output)
                             }
                         }
                     }

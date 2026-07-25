@@ -15,9 +15,9 @@ import com.zhangke.compose.agent.render.model.AgentOutput
 import com.zhangke.compose.agent.render.theme.AgentRenderTheme
 
 @Composable
-fun <T> AgentReasoning(
+fun AgentReasoning(
     modifier: Modifier = Modifier,
-    agentToolCall: AgentOutput.Reasoning<T>,
+    agentToolCall: AgentOutput.Reasoning,
 ) {
     val streamingMarkdownState = rememberStreamingMarkdownState()
     LaunchedEffect(agentToolCall) {

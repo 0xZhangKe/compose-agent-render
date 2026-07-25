@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.zhangke.compose.agent.render.AgentOutput
 import com.zhangke.compose.agent.render.model.AgentChatMessage
+import com.zhangke.compose.agent.render.model.AgentOutput as AgentOutputModel
 import com.zhangke.compose.agent.render.model.AgentOutputMessageState
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
@@ -33,13 +34,13 @@ private val BottomReachedThreshold = 100.dp
 
 @OptIn(FlowPreview::class)
 @Composable
-fun <T> AgentChatList(
+fun AgentChatList(
     modifier: Modifier,
-    messageList: List<AgentChatMessage<T>>,
+    messageList: List<AgentChatMessage>,
     listState: LazyListState = rememberLazyListState(),
     contentPadding: PaddingValues = PaddingValues(0.dp),
     showScrollBar: Boolean = true,
-    custom: @Composable ((data: T) -> Unit)? = null,
+    custom: @Composable ((data: AgentOutputModel) -> Unit)? = null,
 ) {
     val density = LocalDensity.current
     val bottomThresholdPx = with(density) { BottomReachedThreshold.toPx() }

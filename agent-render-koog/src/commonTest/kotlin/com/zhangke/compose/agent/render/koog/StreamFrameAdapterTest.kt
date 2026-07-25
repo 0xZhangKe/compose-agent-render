@@ -72,7 +72,10 @@ class StreamFrameAdapterTest {
 
         val outputs = frames.asFlow().reduceToAgentOutput().toList().last()
 
-        assertEquals(listOf("tool-0-call-1", "tool-1-call-2"), outputs.map { it.id })
+        assertEquals(
+            listOf("tool-0-call-1", "tool-1-call-2"),
+            outputs.map { (it as AgentOutput.ToolCall).id },
+        )
     }
 
     @Test
@@ -84,7 +87,10 @@ class StreamFrameAdapterTest {
 
         val outputs = frames.asFlow().reduceToAgentOutput().toList().last()
 
-        assertEquals(listOf("tool-0-call-1", "tool-0-call-2"), outputs.map { it.id })
+        assertEquals(
+            listOf("tool-0-call-1", "tool-0-call-2"),
+            outputs.map { (it as AgentOutput.ToolCall).id },
+        )
     }
 
     @Test
@@ -97,6 +103,35 @@ class StreamFrameAdapterTest {
 
         val outputs = frames.asFlow().reduceToAgentOutput().toList().last()
 
-        assertEquals(listOf("assistant-0-0", "assistant-1-0"), outputs.map { it.id })
+        assertEquals(
+            listOf("assistant-0-0", "assistant-1-0"),
+            outputs.map { (it as AgentOutput.AssistantText).id },
+        )
+    }
+
+    @Test
+    fun customAdapterCanTransformExistingOutputs() = runBlocking {
+        data class ReplaceText(val content: String)
+
+        val frames = listOf(
+            AgentAdapterFrame.LlmFrame<ReplaceText>(StreamFrame.TextComplete("before", 0)),
+            AgentAdapterFrame.CustomFrame(ReplaceText("after")),
+        )
+
+        val snapshots = frames.asFlow().reduceToAgentOutput { frame, outputsById ->
+            outputsById.mapValues { (_, output) ->
+                if (output is AgentOutput.AssistantText) {
+                    output.copy(content = frame.content)
+                } else {
+                    output
+                }
+            }
+        }.toList()
+
+        assertEquals(2, snapshots.size)
+        assertEquals(
+            "after",
+            (snapshots.last().single() as AgentOutput.AssistantText).content,
+        )
     }
 }

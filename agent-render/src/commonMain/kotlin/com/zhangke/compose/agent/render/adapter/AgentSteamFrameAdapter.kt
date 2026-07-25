@@ -1,20 +1,21 @@
-package com.zhangke.compose.agent.render.koog
+package com.zhangke.compose.agent.render.adapter
 
-import ai.koog.prompt.streaming.StreamFrame
 import com.zhangke.compose.agent.render.model.AgentOutput
+import com.zhangke.compose.agent.render.model.AgentSteamFrameUiModel
 import com.zhangke.compose.agent.render.model.ToolStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-typealias CustomAdapter<T> = (frame: T, outputsById: Map<String, AgentOutput>) -> Map<String, AgentOutput>
-
-fun <T> Flow<AgentAdapterFrame<T>>.reduceToAgentOutput(
-    customAdapter: CustomAdapter<T> = { _, outputsById -> outputsById },
+fun <T : AgentSteamFrameUiModel> Flow<T>.reduceToAgentOutput(
+    customAdapter: (
+        frame: T,
+        outputsById: Map<String, AgentOutput>,
+    ) -> Map<String, AgentOutput> = { _, outputsById -> outputsById },
 ): Flow<List<AgentOutput>> {
     return flow {
-        val reducer = StreamFrameReducer(customAdapter)
+        val reducer = AgentSteamFrameReducer(customAdapter)
         this@reduceToAgentOutput.collect { frame ->
             if (reducer.reduce(frame)) {
                 emit(reducer.outputs)
@@ -23,15 +24,11 @@ fun <T> Flow<AgentAdapterFrame<T>>.reduceToAgentOutput(
     }
 }
 
-sealed interface AgentAdapterFrame<T> {
-
-    data class LlmFrame<T>(val frame: StreamFrame) : AgentAdapterFrame<T>
-
-    data class CustomFrame<T>(val frame: T) : AgentAdapterFrame<T>
-}
-
-private class StreamFrameReducer<T>(
-    private val customAdapter: CustomAdapter<T>,
+private class AgentSteamFrameReducer<T : AgentSteamFrameUiModel>(
+    private val customAdapter: (
+        frame: T,
+        outputsById: Map<String, AgentOutput>,
+    ) -> Map<String, AgentOutput>,
 ) {
 
     private var outputsById: MutableMap<String, AgentOutput> = linkedMapOf()
@@ -46,28 +43,22 @@ private class StreamFrameReducer<T>(
     val outputs: List<AgentOutput>
         get() = outputsById.values.toList()
 
-    fun reduce(frame: AgentAdapterFrame<T>): Boolean {
+    fun reduce(frame: T): Boolean {
         return when (frame) {
-            is AgentAdapterFrame.LlmFrame<T> -> {
-                when (frame.frame) {
-                    is StreamFrame.TextDelta -> reduceTextDelta(frame.frame)
-                    is StreamFrame.TextComplete -> reduceTextComplete(frame.frame)
-                    is StreamFrame.ReasoningDelta -> reduceReasoningDelta(frame.frame)
-                    is StreamFrame.ReasoningComplete -> reduceReasoningComplete(frame.frame)
-                    is StreamFrame.ToolCallDelta -> reduceToolCallDelta(frame.frame)
-                    is StreamFrame.ToolCallComplete -> reduceToolCallComplete(frame.frame)
-                    is StreamFrame.End -> {
-                        responseIndex++
-                        reasoningIdsByIndex.clear()
-                        toolCallIdsByIndex.clear()
-                        false
-                    }
-                }
+            is AgentSteamFrameUiModel.TextDelta -> reduceTextDelta(frame)
+            is AgentSteamFrameUiModel.TextComplete -> reduceTextComplete(frame)
+            is AgentSteamFrameUiModel.ReasoningDelta -> reduceReasoningDelta(frame)
+            is AgentSteamFrameUiModel.ReasoningComplete -> reduceReasoningComplete(frame)
+            is AgentSteamFrameUiModel.ToolCallDelta -> reduceToolCallDelta(frame)
+            is AgentSteamFrameUiModel.ToolCallComplete -> reduceToolCallComplete(frame)
+            is AgentSteamFrameUiModel.End -> {
+                responseIndex++
+                reasoningIdsByIndex.clear()
+                toolCallIdsByIndex.clear()
+                false
             }
 
-            is AgentAdapterFrame.CustomFrame -> {
-                reduceCustomFrame(frame.frame)
-            }
+            else -> reduceCustomFrame(frame)
         }
     }
 
@@ -79,7 +70,7 @@ private class StreamFrameReducer<T>(
         return true
     }
 
-    private fun reduceTextDelta(frame: StreamFrame.TextDelta): Boolean {
+    private fun reduceTextDelta(frame: AgentSteamFrameUiModel.TextDelta): Boolean {
         val id = frame.assistantId(responseIndex)
         val content = textById.orEmpty(id).mergeDelta(frame.text)
         textById[id] = content
@@ -94,7 +85,7 @@ private class StreamFrameReducer<T>(
         )
     }
 
-    private fun reduceTextComplete(frame: StreamFrame.TextComplete): Boolean {
+    private fun reduceTextComplete(frame: AgentSteamFrameUiModel.TextComplete): Boolean {
         val id = frame.assistantId(responseIndex)
         val changed = putOutput(
             id,
@@ -110,7 +101,7 @@ private class StreamFrameReducer<T>(
         return changed
     }
 
-    private fun reduceReasoningDelta(frame: StreamFrame.ReasoningDelta): Boolean {
+    private fun reduceReasoningDelta(frame: AgentSteamFrameUiModel.ReasoningDelta): Boolean {
         val delta = frame.summary ?: frame.text ?: return false
         val id = frame.reasoningId(responseIndex)
         val content = reasoningById.orEmpty(id) + delta
@@ -125,7 +116,7 @@ private class StreamFrameReducer<T>(
         )
     }
 
-    private fun reduceReasoningComplete(frame: StreamFrame.ReasoningComplete): Boolean {
+    private fun reduceReasoningComplete(frame: AgentSteamFrameUiModel.ReasoningComplete): Boolean {
         val id = frame.reasoningId(responseIndex)
         val content = frame.summary?.joinToString(separator = "")
             ?: frame.content.joinToString(separator = "")
@@ -143,7 +134,7 @@ private class StreamFrameReducer<T>(
         return changed
     }
 
-    private fun reduceToolCallDelta(frame: StreamFrame.ToolCallDelta): Boolean {
+    private fun reduceToolCallDelta(frame: AgentSteamFrameUiModel.ToolCallDelta): Boolean {
         val id = frame.toolCallId(responseIndex)
         val current = toolCallsById[id] ?: ToolCallState(
             id = id,
@@ -158,7 +149,7 @@ private class StreamFrameReducer<T>(
         return putOutput(id, next.toAgentOutput())
     }
 
-    private fun reduceToolCallComplete(frame: StreamFrame.ToolCallComplete): Boolean {
+    private fun reduceToolCallComplete(frame: AgentSteamFrameUiModel.ToolCallComplete): Boolean {
         val id = frame.toolCallId(responseIndex)
         val current = toolCallsById[id] ?: ToolCallState(
             id = id,
@@ -176,16 +167,16 @@ private class StreamFrameReducer<T>(
         return changed
     }
 
-    private fun StreamFrame.ReasoningDelta.reasoningId(responseIndex: Int): String =
+    private fun AgentSteamFrameUiModel.ReasoningDelta.reasoningId(responseIndex: Int): String =
         resolveFrameId("reasoning", responseIndex, index, id, reasoningIdsByIndex)
 
-    private fun StreamFrame.ReasoningComplete.reasoningId(responseIndex: Int): String =
+    private fun AgentSteamFrameUiModel.ReasoningComplete.reasoningId(responseIndex: Int): String =
         resolveFrameId("reasoning", responseIndex, index, id, reasoningIdsByIndex)
 
-    private fun StreamFrame.ToolCallDelta.toolCallId(responseIndex: Int): String =
+    private fun AgentSteamFrameUiModel.ToolCallDelta.toolCallId(responseIndex: Int): String =
         resolveFrameId("tool", responseIndex, index, id, toolCallIdsByIndex)
 
-    private fun StreamFrame.ToolCallComplete.toolCallId(responseIndex: Int): String =
+    private fun AgentSteamFrameUiModel.ToolCallComplete.toolCallId(responseIndex: Int): String =
         resolveFrameId("tool", responseIndex, index, id, toolCallIdsByIndex)
 
     private fun resolveFrameId(
@@ -233,10 +224,10 @@ private data class ToolCallState(
     }
 }
 
-private fun StreamFrame.TextDelta.assistantId(responseIndex: Int): String =
+private fun AgentSteamFrameUiModel.TextDelta.assistantId(responseIndex: Int): String =
     "assistant-$responseIndex-${index ?: 0}"
 
-private fun StreamFrame.TextComplete.assistantId(responseIndex: Int): String =
+private fun AgentSteamFrameUiModel.TextComplete.assistantId(responseIndex: Int): String =
     "assistant-$responseIndex-${index ?: 0}"
 
 private fun Map<String, String>.orEmpty(key: String): String {
