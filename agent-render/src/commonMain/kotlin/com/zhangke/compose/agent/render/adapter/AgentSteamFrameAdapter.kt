@@ -8,9 +8,9 @@ import kotlinx.coroutines.flow.flow
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-fun <T : AgentSteamFrameUiModel> Flow<T>.reduceToAgentOutput(
+fun Flow<AgentSteamFrameUiModel>.reduceToAgentOutput(
     customAdapter: (
-        frame: T,
+        frame: AgentSteamFrameUiModel,
         outputsById: Map<String, AgentOutput>,
     ) -> Map<String, AgentOutput> = { _, outputsById -> outputsById },
 ): Flow<List<AgentOutput>> {
@@ -24,9 +24,9 @@ fun <T : AgentSteamFrameUiModel> Flow<T>.reduceToAgentOutput(
     }
 }
 
-private class AgentSteamFrameReducer<T : AgentSteamFrameUiModel>(
+private class AgentSteamFrameReducer(
     private val customAdapter: (
-        frame: T,
+        frame: AgentSteamFrameUiModel,
         outputsById: Map<String, AgentOutput>,
     ) -> Map<String, AgentOutput>,
 ) {
@@ -43,7 +43,7 @@ private class AgentSteamFrameReducer<T : AgentSteamFrameUiModel>(
     val outputs: List<AgentOutput>
         get() = outputsById.values.toList()
 
-    fun reduce(frame: T): Boolean {
+    fun reduce(frame: AgentSteamFrameUiModel): Boolean {
         return when (frame) {
             is AgentSteamFrameUiModel.TextDelta -> reduceTextDelta(frame)
             is AgentSteamFrameUiModel.TextComplete -> reduceTextComplete(frame)
@@ -62,7 +62,7 @@ private class AgentSteamFrameReducer<T : AgentSteamFrameUiModel>(
         }
     }
 
-    private fun reduceCustomFrame(frame: T): Boolean {
+    private fun reduceCustomFrame(frame: AgentSteamFrameUiModel): Boolean {
         val currentOutputs = outputsById.toMap()
         val adaptedOutputs = customAdapter(frame, currentOutputs)
         if (currentOutputs.entries.toList() == adaptedOutputs.entries.toList()) return false
