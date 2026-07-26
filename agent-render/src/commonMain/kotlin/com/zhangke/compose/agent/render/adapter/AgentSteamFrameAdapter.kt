@@ -8,11 +8,13 @@ import kotlinx.coroutines.flow.flow
 import kotlin.time.Clock
 import kotlin.time.Instant
 
+typealias CustomerAdapter = (
+    frame: AgentSteamFrameUiModel,
+    outputsById: Map<String, AgentOutput>,
+) -> Map<String, AgentOutput>
+
 fun Flow<AgentSteamFrameUiModel>.reduceToAgentOutput(
-    customAdapter: (
-        frame: AgentSteamFrameUiModel,
-        outputsById: Map<String, AgentOutput>,
-    ) -> Map<String, AgentOutput> = { _, outputsById -> outputsById },
+    customAdapter: CustomerAdapter = { _, outputsById -> outputsById },
 ): Flow<List<AgentOutput>> {
     return flow {
         val reducer = AgentSteamFrameReducer(customAdapter)
@@ -25,10 +27,7 @@ fun Flow<AgentSteamFrameUiModel>.reduceToAgentOutput(
 }
 
 private class AgentSteamFrameReducer(
-    private val customAdapter: (
-        frame: AgentSteamFrameUiModel,
-        outputsById: Map<String, AgentOutput>,
-    ) -> Map<String, AgentOutput>,
+    private val customAdapter: CustomerAdapter,
 ) {
 
     private var outputsById: MutableMap<String, AgentOutput> = linkedMapOf()
