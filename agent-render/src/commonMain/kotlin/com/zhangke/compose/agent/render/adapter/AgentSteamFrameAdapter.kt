@@ -13,12 +13,64 @@ typealias CustomerAdapter = (
     outputsById: Map<String, AgentOutput>,
 ) -> Map<String, AgentOutput>
 
+/**
+ * Controls how a completed tool call is represented in the output list.
+ */
+sealed interface ToolCallCompleteAdaptResult {
+
+    /** Keep the default [AgentOutput.ToolCall] representation. */
+    data object UseDefault : ToolCallCompleteAdaptResult
+
+    /** Replace the default tool call with a custom [AgentOutput]. */
+    data class Replace(
+        val output: AgentOutput,
+    ) : ToolCallCompleteAdaptResult
+
+    /** Remove the completed tool call from the output list. */
+    data object Drop : ToolCallCompleteAdaptResult
+}
+
+typealias ToolCallCompleteAdapter = (
+    frame: AgentSteamFrameUiModel.ToolCallComplete,
+    defaultOutput: AgentOutput.ToolCall,
+) -> ToolCallCompleteAdaptResult
+
 fun Flow<AgentSteamFrameUiModel>.reduceToAgentOutput(
     customAdapter: CustomerAdapter = { _, outputsById -> outputsById },
 ): Flow<List<AgentOutput>> {
+    return reduceToAgentOutputInternal(
+        customAdapter = customAdapter,
+        toolCallCompleteAdapter = { _, _ -> ToolCallCompleteAdaptResult.UseDefault },
+    )
+}
+
+/**
+ * Reduces frames while allowing completed tool calls to be replaced with custom UI outputs.
+ *
+ * The default output passed to [toolCallCompleteAdapter] contains the reducer-generated stable
+ * id and creation time. Custom outputs should retain that identity when applicable so an earlier
+ * running tool-call row is replaced in place.
+ */
+fun Flow<AgentSteamFrameUiModel>.reduceToAgentOutput(
+    toolCallCompleteAdapter: ToolCallCompleteAdapter,
+    customAdapter: CustomerAdapter = { _, outputsById -> outputsById },
+): Flow<List<AgentOutput>> {
+    return reduceToAgentOutputInternal(
+        customAdapter = customAdapter,
+        toolCallCompleteAdapter = toolCallCompleteAdapter,
+    )
+}
+
+private fun Flow<AgentSteamFrameUiModel>.reduceToAgentOutputInternal(
+    customAdapter: CustomerAdapter,
+    toolCallCompleteAdapter: ToolCallCompleteAdapter,
+): Flow<List<AgentOutput>> {
     return flow {
-        val reducer = AgentSteamFrameReducer(customAdapter)
-        this@reduceToAgentOutput.collect { frame ->
+        val reducer = AgentSteamFrameReducer(
+            customAdapter = customAdapter,
+            toolCallCompleteAdapter = toolCallCompleteAdapter,
+        )
+        this@reduceToAgentOutputInternal.collect { frame ->
             if (reducer.reduce(frame)) {
                 emit(reducer.outputs)
             }
@@ -28,6 +80,7 @@ fun Flow<AgentSteamFrameUiModel>.reduceToAgentOutput(
 
 private class AgentSteamFrameReducer(
     private val customAdapter: CustomerAdapter,
+    private val toolCallCompleteAdapter: ToolCallCompleteAdapter,
 ) {
 
     private var outputsById: MutableMap<String, AgentOutput> = linkedMapOf()
@@ -160,7 +213,12 @@ private class AgentSteamFrameReducer(
             status = ToolStatus.Success,
         )
         toolCallsById[id] = next
-        val changed = putOutput(id, next.toAgentOutput())
+        val defaultOutput = next.toAgentOutput()
+        val changed = when (val result = toolCallCompleteAdapter(frame, defaultOutput)) {
+            ToolCallCompleteAdaptResult.UseDefault -> putOutput(id, defaultOutput)
+            is ToolCallCompleteAdaptResult.Replace -> putOutput(id, result.output)
+            ToolCallCompleteAdaptResult.Drop -> outputsById.remove(id) != null
+        }
         toolCallsById.remove(id)
         createAtById.remove(id)
         return changed
