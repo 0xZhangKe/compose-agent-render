@@ -80,6 +80,7 @@ fun AgentChatList(
                         outputList = message.outputList,
                         custom = custom,
                         completed = message.state is AgentOutputMessageState.Completed || message.state is AgentOutputMessageState.Error,
+                        completeMetaDataUiModel = message.completeMetaDataUiModel,
                     )
                 }
 

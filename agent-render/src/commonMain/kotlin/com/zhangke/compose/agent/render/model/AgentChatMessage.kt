@@ -7,6 +7,7 @@ sealed interface AgentChatMessage {
     data class AgentOutputMessage(
         val outputList: List<AgentOutput>,
         val state: AgentOutputMessageState,
+        val completeMetaDataUiModel: AgentCompleteMetaDataUiModel? = null,
     ) : AgentChatMessage
 
     data class HumanInputMessage(
