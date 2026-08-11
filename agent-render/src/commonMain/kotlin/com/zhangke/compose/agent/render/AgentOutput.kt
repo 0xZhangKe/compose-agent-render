@@ -45,9 +45,8 @@ fun AgentOutput(
         if (outputList.isEmpty()) return@Box
         Column(modifier = Modifier.fillMaxWidth()) {
             var expanded by rememberSaveable { mutableStateOf(true) }
-            val finalResultOutput: AgentOutput.AssistantText? by remember(outputList, completed) {
-                val output = outputList.lastOrNull { it is AgentOutput.AssistantText && it.completed }?.let { it as? AgentOutput.AssistantText }
-                mutableStateOf(output)
+            val finalResultOutput: AgentOutput? by remember(outputList, completed) {
+                mutableStateOf(outputList.lastOrNull())
             }
             val collapsedOutputList by remember(finalResultOutput, outputList) {
                 mutableStateOf(outputList.filterNot { it == finalResultOutput })
@@ -121,10 +120,14 @@ fun AgentOutput(
                 }
             }
             finalResultOutput?.let { finalTextOutput ->
-                AgentAssistantText(
-                    modifier = Modifier.fillMaxWidth(),
-                    agentToolCall = finalTextOutput,
-                )
+                if (finalResultOutput is AgentOutput.AssistantText) {
+                    AgentAssistantText(
+                        modifier = Modifier.fillMaxWidth(),
+                        agentToolCall = finalTextOutput as AgentOutput.AssistantText,
+                    )
+                } else {
+                    custom?.invoke(finalTextOutput)
+                }
             }
         }
     }
