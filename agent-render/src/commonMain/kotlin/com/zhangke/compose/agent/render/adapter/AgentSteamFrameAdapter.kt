@@ -14,61 +14,61 @@ typealias CustomerAdapter = (
 ) -> Map<String, AgentOutput>
 
 /**
- * Controls how a completed tool call is represented in the output list.
+ * Controls how completed assistant text is represented in the output list.
  */
-sealed interface ToolCallCompleteAdaptResult {
+sealed interface TextCompleteAdaptResult {
 
-    /** Keep the default [AgentOutput.ToolCall] representation. */
-    data object UseDefault : ToolCallCompleteAdaptResult
+    /** Keep the default [AgentOutput.AssistantText] representation. */
+    data object UseDefault : TextCompleteAdaptResult
 
-    /** Replace the default tool call with a custom [AgentOutput]. */
+    /** Replace the default assistant text with a custom [AgentOutput]. */
     data class Replace(
         val output: AgentOutput,
-    ) : ToolCallCompleteAdaptResult
+    ) : TextCompleteAdaptResult
 
-    /** Remove the completed tool call from the output list. */
-    data object Drop : ToolCallCompleteAdaptResult
+    /** Remove the completed assistant text from the output list. */
+    data object Drop : TextCompleteAdaptResult
 }
 
-typealias ToolCallCompleteAdapter = (
-    frame: AgentSteamFrameUiModel.ToolCallComplete,
-    defaultOutput: AgentOutput.ToolCall,
-) -> ToolCallCompleteAdaptResult
+typealias TextCompleteAdapter = (
+    frame: AgentSteamFrameUiModel.TextComplete,
+    defaultOutput: AgentOutput.AssistantText,
+) -> TextCompleteAdaptResult
 
 fun Flow<AgentSteamFrameUiModel>.reduceToAgentOutput(
     customAdapter: CustomerAdapter = { _, outputsById -> outputsById },
 ): Flow<List<AgentOutput>> {
     return reduceToAgentOutputInternal(
         customAdapter = customAdapter,
-        toolCallCompleteAdapter = { _, _ -> ToolCallCompleteAdaptResult.UseDefault },
+        textCompleteAdapter = { _, _ -> TextCompleteAdaptResult.UseDefault },
     )
 }
 
 /**
- * Reduces frames while allowing completed tool calls to be replaced with custom UI outputs.
+ * Reduces frames while allowing completed assistant text to be replaced with custom UI outputs.
  *
- * The default output passed to [toolCallCompleteAdapter] contains the reducer-generated stable
- * id and creation time. Custom outputs should retain that identity when applicable so an earlier
- * running tool-call row is replaced in place.
+ * The default output passed to [textCompleteAdapter] contains the reducer-generated stable id and
+ * creation time. Custom outputs should retain that identity when applicable so an earlier
+ * streaming text row is replaced in place.
  */
 fun Flow<AgentSteamFrameUiModel>.reduceToAgentOutput(
-    toolCallCompleteAdapter: ToolCallCompleteAdapter,
+    textCompleteAdapter: TextCompleteAdapter,
     customAdapter: CustomerAdapter = { _, outputsById -> outputsById },
 ): Flow<List<AgentOutput>> {
     return reduceToAgentOutputInternal(
         customAdapter = customAdapter,
-        toolCallCompleteAdapter = toolCallCompleteAdapter,
+        textCompleteAdapter = textCompleteAdapter,
     )
 }
 
 private fun Flow<AgentSteamFrameUiModel>.reduceToAgentOutputInternal(
     customAdapter: CustomerAdapter,
-    toolCallCompleteAdapter: ToolCallCompleteAdapter,
+    textCompleteAdapter: TextCompleteAdapter,
 ): Flow<List<AgentOutput>> {
     return flow {
         val reducer = AgentSteamFrameReducer(
             customAdapter = customAdapter,
-            toolCallCompleteAdapter = toolCallCompleteAdapter,
+            textCompleteAdapter = textCompleteAdapter,
         )
         this@reduceToAgentOutputInternal.collect { frame ->
             if (reducer.reduce(frame)) {
@@ -80,7 +80,7 @@ private fun Flow<AgentSteamFrameUiModel>.reduceToAgentOutputInternal(
 
 private class AgentSteamFrameReducer(
     private val customAdapter: CustomerAdapter,
-    private val toolCallCompleteAdapter: ToolCallCompleteAdapter,
+    private val textCompleteAdapter: TextCompleteAdapter,
 ) {
 
     private var outputsById: MutableMap<String, AgentOutput> = linkedMapOf()
@@ -133,21 +133,25 @@ private class AgentSteamFrameReducer(
                 content = content,
                 createAt = createAtById.getOrCreate(id),
                 completed = false,
+                isFinalResult = false,
             ),
         )
     }
 
     private fun reduceTextComplete(frame: AgentSteamFrameUiModel.TextComplete): Boolean {
         val id = frame.assistantId(responseIndex)
-        val changed = putOutput(
-            id,
-            AgentOutput.AssistantText(
-                id = id,
-                content = frame.text,
-                createAt = createAtById.getOrCreate(id),
-                completed = true,
-            ),
+        val defaultOutput = AgentOutput.AssistantText(
+            id = id,
+            content = frame.text,
+            createAt = createAtById.getOrCreate(id),
+            completed = true,
+            isFinalResult = false,
         )
+        val changed = when (val result = textCompleteAdapter(frame, defaultOutput)) {
+            TextCompleteAdaptResult.UseDefault -> putOutput(id, defaultOutput)
+            is TextCompleteAdaptResult.Replace -> putOutput(id, result.output)
+            TextCompleteAdaptResult.Drop -> outputsById.remove(id) != null
+        }
         textById.remove(id)
         createAtById.remove(id)
         return changed
@@ -213,12 +217,7 @@ private class AgentSteamFrameReducer(
             status = ToolStatus.Success,
         )
         toolCallsById[id] = next
-        val defaultOutput = next.toAgentOutput()
-        val changed = when (val result = toolCallCompleteAdapter(frame, defaultOutput)) {
-            ToolCallCompleteAdaptResult.UseDefault -> putOutput(id, defaultOutput)
-            is ToolCallCompleteAdaptResult.Replace -> putOutput(id, result.output)
-            ToolCallCompleteAdaptResult.Drop -> outputsById.remove(id) != null
-        }
+        val changed = putOutput(id, next.toAgentOutput())
         toolCallsById.remove(id)
         createAtById.remove(id)
         return changed

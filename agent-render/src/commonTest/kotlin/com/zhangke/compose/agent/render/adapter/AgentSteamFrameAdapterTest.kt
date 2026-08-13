@@ -111,30 +111,27 @@ class AgentSteamFrameAdapterTest {
     }
 
     @Test
-    fun toolCallCompleteAdapterCanReplaceDefaultToolCall() = runBlocking {
+    fun textCompleteAdapterCanReplaceDefaultText() = runBlocking {
         data class StructuredResult(
             val id: String,
             val content: String,
             val createAt: Instant,
+            override val isFinalResult: Boolean,
         ) : AgentOutput
 
         val frames: List<AgentSteamFrameUiModel> = listOf(
-            AgentSteamFrameUiModel.ToolCallDelta("call-1", "submit_result", "{\"title\"", 0),
-            AgentSteamFrameUiModel.ToolCallComplete(
-                "call-1",
-                "submit_result",
-                "{\"title\":\"Hello\"}",
-                0,
-            ),
+            AgentSteamFrameUiModel.TextDelta("{\"title\"", 0),
+            AgentSteamFrameUiModel.TextComplete("{\"title\":\"Hello\"}", 0),
         )
 
         val snapshots = frames.asFlow().reduceToAgentOutput(
-            toolCallCompleteAdapter = { frame, defaultOutput ->
-                ToolCallCompleteAdaptResult.Replace(
+            textCompleteAdapter = { frame, defaultOutput ->
+                TextCompleteAdaptResult.Replace(
                     StructuredResult(
                         id = defaultOutput.id,
-                        content = frame.content,
+                        content = frame.text,
                         createAt = defaultOutput.createAt,
+                        isFinalResult = true,
                     ),
                 )
             },
@@ -142,34 +139,35 @@ class AgentSteamFrameAdapterTest {
 
         assertEquals(2, snapshots.size)
         val output = assertIs<StructuredResult>(snapshots.last().single())
-        assertEquals("tool-0-call-1", output.id)
+        assertEquals("assistant-0-0", output.id)
         assertEquals("{\"title\":\"Hello\"}", output.content)
+        assertEquals(true, output.isFinalResult)
     }
 
     @Test
-    fun toolCallCompleteAdapterCanFallBackToDefaultToolCall() = runBlocking {
+    fun textCompleteAdapterCanFallBackToDefaultText() = runBlocking {
         val frames: List<AgentSteamFrameUiModel> = listOf(
-            AgentSteamFrameUiModel.ToolCallComplete("call-1", "search", "{}", 0),
+            AgentSteamFrameUiModel.TextComplete("Hello", 0),
         )
 
         val snapshots = frames.asFlow().reduceToAgentOutput(
-            toolCallCompleteAdapter = { _, _ -> ToolCallCompleteAdaptResult.UseDefault },
+            textCompleteAdapter = { _, _ -> TextCompleteAdaptResult.UseDefault },
         ).toList()
 
-        val output = assertIs<AgentOutput.ToolCall>(snapshots.single().single())
-        assertEquals("tool-0-call-1", output.id)
-        assertEquals("search", output.name)
+        val output = assertIs<AgentOutput.AssistantText>(snapshots.single().single())
+        assertEquals("assistant-0-0", output.id)
+        assertEquals("Hello", output.content)
     }
 
     @Test
-    fun toolCallCompleteAdapterCanDropRunningToolCall() = runBlocking {
+    fun textCompleteAdapterCanDropStreamingText() = runBlocking {
         val frames: List<AgentSteamFrameUiModel> = listOf(
-            AgentSteamFrameUiModel.ToolCallDelta("call-1", "internal", "{}", 0),
-            AgentSteamFrameUiModel.ToolCallComplete("call-1", "internal", "{}", 0),
+            AgentSteamFrameUiModel.TextDelta("internal", 0),
+            AgentSteamFrameUiModel.TextComplete("internal", 0),
         )
 
         val snapshots = frames.asFlow().reduceToAgentOutput(
-            toolCallCompleteAdapter = { _, _ -> ToolCallCompleteAdaptResult.Drop },
+            textCompleteAdapter = { _, _ -> TextCompleteAdaptResult.Drop },
         ).toList()
 
         assertEquals(2, snapshots.size)

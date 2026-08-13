@@ -45,11 +45,23 @@ fun AgentOutput(
         if (outputList.isEmpty()) return@Box
         Column(modifier = Modifier.fillMaxWidth()) {
             var expanded by rememberSaveable { mutableStateOf(true) }
-            val finalResultOutput: AgentOutput? by remember(outputList, completed) {
-                mutableStateOf(outputList.lastOrNull())
+            val finalResultOutputIndex = remember(outputList, completed) {
+                if (completed) outputList.indexOfLast { it.isFinalResult } else -1
             }
-            val collapsedOutputList by remember(finalResultOutput, outputList) {
-                mutableStateOf(outputList.filterNot { it == finalResultOutput })
+            val finalResultOutput = outputList.getOrNull(finalResultOutputIndex)
+            val collapsedOutputList = remember(finalResultOutputIndex, outputList) {
+                if (finalResultOutputIndex >= 0) {
+                    outputList.take(finalResultOutputIndex)
+                } else {
+                    outputList
+                }
+            }
+            val finalResultOutputList = remember(finalResultOutputIndex, outputList) {
+                if (finalResultOutputIndex >= 0) {
+                    outputList.drop(finalResultOutputIndex)
+                } else {
+                    emptyList()
+                }
             }
             if (finalResultOutput != null) {
                 LaunchedEffect(finalResultOutput) {
@@ -68,7 +80,7 @@ fun AgentOutput(
                         text = completeMetaDataUiModel
                             .takeIf { completed }
                             .toCompleteSummary(),
-                        modifier = Modifier.weight(1F),
+                        modifier = Modifier.weight(1F, fill = false),
                         style = AgentRenderTheme.typography.content.copy(
                             color = AgentRenderTheme.colorScheme.contentVariant,
                         ),
@@ -90,47 +102,48 @@ fun AgentOutput(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     for (output in collapsedOutputList) {
-                        when (output) {
-                            is AgentOutput.ToolCall -> {
-                                AgentToolCall(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    agentToolCall = output,
-                                )
-                            }
-
-                            is AgentOutput.Reasoning -> {
-                                AgentReasoning(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    agentToolCall = output,
-                                )
-                            }
-
-                            is AgentOutput.AssistantText -> {
-                                AgentAssistantText(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    agentToolCall = output,
-                                )
-                            }
-
-                            else -> {
-                                custom?.invoke(output)
-                            }
-                        }
+                        AgentOutputItem(output, modifier = Modifier.fillMaxWidth(), custom = custom)
                     }
                 }
             }
-            finalResultOutput?.let { finalTextOutput ->
-                if (finalResultOutput is AgentOutput.AssistantText) {
-                    AgentAssistantText(
-                        modifier = Modifier.fillMaxWidth(),
-                        agentToolCall = finalTextOutput as AgentOutput.AssistantText,
-                    )
-                } else {
-                    custom?.invoke(finalTextOutput)
-                }
+            for (finalResultOutput in finalResultOutputList) {
+                AgentOutputItem(finalResultOutput, modifier = Modifier.fillMaxWidth(), custom = custom)
             }
         }
     }
+}
+
+@Composable
+private fun AgentOutputItem(
+    output: AgentOutput,
+    modifier: Modifier = Modifier,
+    custom: @Composable ((data: AgentOutput) -> Unit)? = null,
+) {
+    when (output) {
+        is AgentOutput.ToolCall -> {
+            AgentToolCall(
+                modifier = modifier.fillMaxWidth(),
+                agentToolCall = output,
+            )
+        }
+
+        is AgentOutput.Reasoning -> {
+            AgentReasoning(
+                modifier = modifier.fillMaxWidth(),
+                agentToolCall = output,
+            )
+        }
+
+        is AgentOutput.AssistantText -> {
+            AgentAssistantText(
+                modifier = modifier.fillMaxWidth(),
+                agentToolCall = output,
+            )
+        }
+
+        else -> custom?.invoke(output)
+    }
+
 }
 
 internal fun AgentCompleteMetaDataUiModel?.toCompleteSummary(): String {

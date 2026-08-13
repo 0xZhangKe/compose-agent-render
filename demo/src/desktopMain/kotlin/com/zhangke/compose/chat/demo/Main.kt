@@ -9,7 +9,7 @@ fun main() = application {
         onCloseRequest = ::exitApplication,
         title = "compose agent renderer",
     ) {
-//        ChatListScreen()
-        ProcessingTextDemoScreen()
+        ChatListScreen()
+//        ProcessingTextDemoScreen()
     }
 }
