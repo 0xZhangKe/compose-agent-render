@@ -21,7 +21,7 @@ data class AgentColorScheme(
     val inputBarContainer: Color,
 ) {
 
-    internal val markdownColors: MarkdownColors = DefaultMarkdownColors(
+    val markdownColors: MarkdownColors = DefaultMarkdownColors(
         text = content,
         codeBackground = toolCallContainer,
         inlineCodeBackground = toolCallContainer,

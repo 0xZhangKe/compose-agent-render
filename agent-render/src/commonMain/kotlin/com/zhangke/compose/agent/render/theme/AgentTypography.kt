@@ -21,7 +21,7 @@ data class AgentTypography(
     val toolCallCommand: TextStyle,
 ) {
 
-    internal val markdownTypography: MarkdownTypography = DefaultMarkdownTypography(
+    val markdownTypography: MarkdownTypography = DefaultMarkdownTypography(
         h1 = content.copy(
             fontSize = 20.sp,
             lineHeight = 28.sp,
